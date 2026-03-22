@@ -1,0 +1,17 @@
+inspiration_sources
+
+# Local runtime data
+datasets/
+runs/
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Build outputs
+build/
+cmake-build-*/
+third_party/

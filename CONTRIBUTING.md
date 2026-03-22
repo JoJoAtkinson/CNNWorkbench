@@ -1,0 +1,254 @@
+# Contributing To CNN Workbench
+
+CNN Workbench is designed to be easy to extend without forking the whole
+project. The intended contribution model is:
+
+- experiments are config-first
+- Python owns orchestration
+- C++ owns one resolved training job at a time
+- deployment-targeted math changes live in shared code, not in experiment
+  folders
+
+This file explains how to contribute against that design and doubles as a
+checksum for whether the project structure is actually contributor-friendly.
+
+## Current Repository State
+
+Today this repository is still plan-first. The tracked source currently consists
+of planning and reference documents, not the implemented Python/C++ codebase
+described in [README.md](/Users/joe/GitHub/CNNWorkbench/README.md) and
+[plan.md](/Users/joe/GitHub/CNNWorkbench/plan.md).
+
+That means:
+
+- contributions right now are primarily to planning, documentation, and design
+  clarity
+- the command workflow below is the intended contribution workflow once the
+  implementation lands
+- if the repo contents and this file ever disagree, update the plan first, then
+  update docs, then implement code
+
+## Contribution Principles
+
+- Prefer the smallest change surface that solves the problem.
+- Do not fork behavior into per-experiment code paths when config or shared
+  registries can express it.
+- Keep training runtime selection separate from deployment target.
+- Treat FPGA-targeted work as a first-class motivation without making the
+  framework FPGA-only.
+- Keep Python orchestration modular and keep the C++ trainer narrow.
+- Make failures actionable. A contributor should get a clear next step instead
+  of a low-context tool error.
+
+## Choose The Right Contribution Surface
+
+Use the narrowest layer that fits the change.
+
+- Change only experiment behavior under test:
+  edit `experiment.toml` in a tracked experiment folder
+- Add or modify reusable orchestration behavior:
+  change Python under `src/cnn_workbench/`
+- Add or modify reusable model/math behavior:
+  change C++ under `cpp/`
+- Add a new deployment-target default or durable experiment family:
+  create a new base version instead of editing a finished base
+- Update contributor expectations, workflow, or architecture wording:
+  update docs first
+
+Cost and iteration tradeoff:
+
+- config changes are the lowest-cost contribution surface
+- Python orchestration changes are the next-cheapest path because they do not
+  require rebuilding the C++ trainer
+- C++ model or math changes are the heaviest path because they require code
+  changes, registry wiring where applicable, rebuild, and trainer-facing
+  validation
+- choose the heavier path only when the behavior truly belongs in the shared
+  execution or low-level math layer
+
+Use config when changing:
+
+- training settings
+- optimizer or scheduler selection
+- stage-level model structure
+- loss, train-loop, quantization, or deployment options already exposed in the
+  schema
+
+Use shared code when changing:
+
+- a new reusable backbone, head, block, norm, activation, optimizer, scheduler,
+  or train loop
+- low-level arithmetic such as quantizers, shift activations, or FPGA-oriented
+  normalization
+- orchestration behavior shared across `check`, `resolve`, `run_local`, or
+  `compare`
+
+Boundary routing examples:
+
+- data augmentation that belongs to dataset preparation or input shaping:
+  Python under `src/cnn_workbench/datasets/`
+- learning-rate behavior that changes trainer-time step logic:
+  C++ scheduler or train-loop code
+- learning-rate behavior that only affects launch-time selection or config
+  assembly:
+  Python resolution or orchestration
+- metrics that require per-batch access inside the training loop:
+  C++ trainer-side metrics code
+- metrics that summarize finished artifacts across runs:
+  Python compare/reporting code
+
+## Intended Setup Flow
+
+Once implementation lands, contributors should be able to bootstrap with one
+obvious path.
+
+1. Pick the right environment.
+2. Run `doctor`.
+3. Run `uv sync`.
+4. Run `build` only if the environment supports training.
+5. Use `check` and `resolve` before `run_local`.
+
+Canonical commands:
+
+```bash
+uv run python -m cnn_workbench.cli.doctor
+uv sync
+uv run python -m cnn_workbench.cli.build
+uv run python -m cnn_workbench.cli.check --experiment <id> --run-profile short
+uv run python -m cnn_workbench.cli.resolve --experiment <id> --run-profile short --diff-from-parent
+uv run python -m cnn_workbench.cli.run_local --experiment <id> --run-profile short
+uv run python -m cnn_workbench.cli.compare --experiments <id> <id>
+```
+
+Environment intent:
+
+- accelerated CUDA: Docker or Dev Container is the canonical path
+- accelerated MPS: native macOS host
+- CPU: native host, especially for short runs and one-image-at-a-time work
+- authoring-only: may scaffold, check, resolve, compare, and prepare datasets,
+  but must not build or launch training
+
+Authoring-only contribution mode is first-class, not a fallback. Contributors
+working on experiment definitions, schema rules, docs, dataset catalog logic,
+comparison behavior, or resolution behavior should usually be able to make
+progress without a full training-capable environment.
+
+## Normal Contribution Workflow
+
+For most feature or experiment work:
+
+1. Start from the correct base.
+2. Make the smallest config or shared-code change that expresses the idea.
+3. Run `check`.
+4. Run `resolve`.
+5. Run a short batch first.
+6. Commit experiment changes together with any shared-code change they require.
+7. Run the canonical full batch only from a clean tree unless an explicit dirty
+   override is justified.
+
+Why short runs matter:
+
+- short runs are the intended fast-feedback loop for contributors
+- they are the cheapest way to validate that a config change, shared-code
+  change, or runtime-selection change behaves as expected
+- they should be the default development path before any canonical full run
+
+Use `resolve --diff-from-parent` as the primary inspection tool before launch.
+It is the clearest way to verify what your authored experiment changed and what
+the trainer will actually receive after inheritance, dataset metadata, and
+run-profile expansion.
+
+For documentation or planning work:
+
+1. Update the plan if behavior or architecture is changing.
+2. Update the README and contributor docs to match.
+3. Avoid documenting behavior that the plan does not define.
+
+For new experiment contributions:
+
+- keep `notes.md` meaningful, not boilerplate
+- record the hypothesis, parent, fields under test, run plan, expected signal,
+  and actual outcome
+- treat `notes.md` as the human explanation paired with the machine-readable
+  run artifacts
+
+For finished experiments and bases:
+
+- do not edit a finished experiment or finished base in place if the correction
+  would change runtime meaning
+- create a successor experiment or base version and record why the old one was
+  superseded
+- use notes or reports to explain the correction rather than silently rewriting
+  historical source-of-truth configs
+
+Documentation-only clarifications that do not change runtime meaning may still
+be added around finished work, but the original runtime-defining config should
+remain intact.
+
+For new dataset contributions:
+
+1. add the dataset catalog entry in `configs/datasets.toml`
+2. add the prepare helper under `src/cnn_workbench/datasets/`
+3. ensure the helper writes `<dataset_root>/metadata.json`
+4. verify `resolve` can read the dataset metadata
+5. add tests for idempotent preparation and metadata validation
+
+## Quality Bar
+
+Every contribution should preserve these properties:
+
+- one source of truth for runtime resolution
+- no duplicate environment or launch policy logic across commands
+- no silent mixing of run profiles, datasets, or deployment targets in compare
+- no hidden defaults outside the documented config and artifact contracts
+- no per-experiment forks of shared math or trainer behavior
+
+Minimum test expectations for implementation contributions:
+
+- validate the changed contract at the narrowest useful level
+- add or update unit tests for schema, policy, or resolution rules
+- add integration coverage for run orchestration or artifact behavior when the
+  change crosses module boundaries
+- keep CPU, accelerated, and FPGA-target labeling explicit where relevant
+
+Additional expectations for C++ contributions:
+
+- if a direct C++ unit or smoke-test harness exists for the changed component
+  family, use it
+- otherwise add the narrowest trainer-boundary smoke test possible using a tiny
+  resolved-config fixture
+- when adding a new registered component, test both successful selection and the
+  failure mode for missing registration
+- do not rely only on a full end-to-end run if a smaller targeted validation is
+  possible
+
+## Pull Request Checklist
+
+Before opening a PR, confirm:
+
+- the change is in the narrowest correct layer
+- docs and plan still match each other
+- any new config behavior is documented
+- any new shared component is reachable through the documented registry/config
+  path
+- any new dataset path is documented and writes the required metadata contract
+- validation and error messages remain actionable
+- tests cover the changed behavior or the missing coverage is called out
+- if you added the second implementation in a registry family, you also proved
+  the extension path is understandable through docs and tests
+
+## Contribution Checksum
+
+This project is easy to contribute to only if all of the following stay true:
+
+- a contributor can tell where a change belongs without reading the whole repo
+- the environment entrypoint is obvious and starts with `doctor`
+- the path from authored experiment to resolved run is inspectable with
+  `resolve`
+- low-level math work has one shared home in C++
+- orchestration behavior has one shared home in Python
+- deployment-targeted work does not require a second project or a forked
+  training stack
+
+If any of those stop being true, treat that as an architecture regression and
+fix the design before adding more features.
