@@ -1,0 +1,428 @@
+requirements:
+  - id: REQ-001
+    title: Config-First Experiment Derivation
+    category: authoring
+    statement: >-
+      When a contributor creates experiment history, the workbench shall support
+      versioned bases and derived experiments that express hypotheses through
+      tracked configuration instead of per-experiment runtime-code forks.
+    fit_criterion: >-
+      The repo defines tracked seed roots for template and base experiments, and
+      Stage 2 scaffolding produces a derived experiment folder with repo-local
+      ID allocation, parent linkage, and notes template content.
+    rationale: >-
+      The project is meant to make experiments cheap to create and review
+      without cloning the shared Python or C++ implementation surface.
+    priority: high
+    owner: architecture
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-02
+    source_refs:
+      - README.md#mental-model
+      - README.md#sharing-and-promotion
+      - plan.md#core-decisions
+      - plan.md#scaffolding-workflow
+      - plans/stages/02_authoring_and_resolution/plan.md#scope
+  - id: REQ-002
+    title: Resolved Child Run Runtime Contract
+    category: contract
+    statement: >-
+      When a contributor resolves or executes an experiment, the system shall
+      materialize one resolved child run per dataset and run profile, and that
+      resolved child run shall be the only runtime contract consumed by the
+      trainer.
+    fit_criterion: >-
+      Resolution emits one fully materialized child config per dataset target,
+      and trainer-facing stages consume resolved config artifacts rather than
+      authored experiment folders.
+    rationale: >-
+      A single machine-facing contract prevents repeated runtime interpretation
+      logic across CLI commands and the C++ trainer.
+    priority: high
+    owner: architecture
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-02
+      - STAGE-05
+    source_refs:
+      - README.md#architecture
+      - plan.md#shared-domain-model
+      - plan.md#resolution-contract
+      - plan.md#trainer-contract
+  - id: REQ-003
+    title: Multi-Track Base Roots
+    category: architecture
+    statement: >-
+      The repo shall maintain versioned base roots for accelerated, FPGA, and
+      CPU-targeted work so contributors can start from the correct deployment
+      intent without inventing parallel project structures.
+    fit_criterion: >-
+      The tracked plan and repository layout define the template root plus
+      accelerated, FPGA, and CPU base roots, and stage plans preserve those
+      track identities.
+    rationale: >-
+      Deployment-targeted work needs distinct roots, but the project still aims
+      to keep one shared workbench rather than several target-specific repos.
+    priority: high
+    owner: architecture
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-09
+    source_refs:
+      - README.md#planned-repository-layout
+      - README.md#base-hierarchy-and-tracks
+      - plan.md#core-decisions
+      - plan.md#canonical-roots-and-defaults
+  - id: REQ-004
+    title: Inspectable Authoring Workflow
+    category: authoring
+    statement: >-
+      When a contributor authors an experiment, the system shall provide
+      scaffold, validation, and resolve commands that work in authoring-only
+      environments and make the runtime effect of authored changes inspectable.
+    fit_criterion: >-
+      The documented workflow includes `new_experiment`, `check`, and
+      `resolve --diff-from-parent`, and Stage 2 acceptance requires those paths
+      to work without trainer execution.
+    rationale: >-
+      The planning docs position authoring as a first-class contribution surface
+      rather than a thin wrapper around training-only workflows.
+    priority: high
+    owner: authoring
+    status: accepted
+    stage_ids:
+      - STAGE-02
+      - STAGE-04
+    source_refs:
+      - README.md#quick-start
+      - CONTRIBUTING.md#normal-contribution-workflow
+      - plan.md#scaffolding-workflow
+      - plans/stages/02_authoring_and_resolution/plan.md#deliverables
+  - id: REQ-005
+    title: Structured Validation Output
+    category: contract
+    statement: >-
+      When experiment validation fails, JSON-capable planning commands shall
+      report an aggregated error set with stable path, code, severity, and
+      message fields instead of low-context single-failure output.
+    fit_criterion: >-
+      Stage 2 defines and tests a top-level `errors` array contract for
+      validation output.
+    rationale: >-
+      Stable validation output supports both human review and future tooling
+      without relying on ad hoc parsing of prose errors.
+    priority: medium
+    owner: authoring
+    status: accepted
+    stage_ids:
+      - STAGE-02
+    source_refs:
+      - plan.md#validation-and-error-handling
+      - plans/mock_implementation_learned.md#stage-2-authoring-and-resolution
+      - plans/stages/02_authoring_and_resolution/plan.md#done-criteria
+  - id: REQ-006
+    title: Shared Dataset Catalog And Preparation
+    category: datasets
+    statement: >-
+      When a dataset enters the system, the workbench shall route it through one
+      shared catalog and preparation path and surface the resulting runtime
+      metadata through resolved child runs.
+    fit_criterion: >-
+      `configs/datasets.toml`, `metadata.json`, and `ensure_dataset()` exist as
+      the documented shared contract, and resolution can copy dataset metadata
+      into resolved child configs.
+    rationale: >-
+      Dataset shape and preparation behavior must not be reimplemented across
+      authoring, execution, and future remote submission flows.
+    priority: high
+    owner: datasets
+    status: accepted
+    stage_ids:
+      - STAGE-03
+    source_refs:
+      - README.md#dataset-preparation
+      - plan.md#dataset-catalog-contract
+      - plans/stages/03_datasets/plan.md#scope
+  - id: REQ-007
+    title: Actionable Environment Diagnostics
+    category: environment
+    statement: >-
+      When a contributor runs environment checks, the system shall classify the
+      environment, explain supported capabilities, and provide the next required
+      action before build or training begins.
+    fit_criterion: >-
+      `doctor` reports environment kind, capability flags, runtime resolution,
+      and fallback behavior, and unsupported environments fail before heavy
+      bootstrap or build work.
+    rationale: >-
+      The docs consistently position `doctor` as the contributor entrypoint that
+      makes environment problems explicit instead of allowing deep toolchain
+      failures.
+    priority: high
+    owner: environment
+    status: accepted
+    stage_ids:
+      - STAGE-04
+    source_refs:
+      - README.md#compatibility-and-preflight
+      - README.md#quick-start
+      - plan.md#supported-local-environments
+      - plan.md#preflight-and-policy-ownership
+  - id: REQ-008
+    title: Canonical Trainer Build Contract
+    category: build
+    statement: >-
+      When the trainer is built, the workbench shall compile the canonical
+      `cnnwb_train` target into environment-scoped build roots using the pinned
+      LibTorch distribution and fingerprint-based rebuild decisions.
+    fit_criterion: >-
+      Stage 5 defines the canonical target name, minimum CMake version,
+      supported build types, environment-scoped build roots, and build
+      fingerprint artifact.
+    rationale: >-
+      A narrow, repeatable build contract prevents build ownership from leaking
+      into ad hoc local scripts or target-specific repos.
+    priority: high
+    owner: build
+    status: accepted
+    stage_ids:
+      - STAGE-04
+      - STAGE-05
+    source_refs:
+      - README.md#quick-start
+      - plan.md#build-and-bootstrap
+      - plan.md#trainer-contract
+      - plans/stages/05_trainer_build_and_vertical_slice/plan.md#scope
+  - id: REQ-009
+    title: Local Scratch Execution With Provenance
+    category: runtime
+    statement: >-
+      When a contributor launches a scratch-mode local batch, the system shall
+      expand ordered child runs, execute them sequentially, and write the
+      required runtime artifacts for both success and failure paths.
+    fit_criterion: >-
+      Stage 6 acceptance requires `run_local --run-profile short` to produce the
+      documented artifact set, including valid failure artifacts and provenance
+      fields.
+    rationale: >-
+      The fast-feedback loop depends on short runs being reproducible,
+      reviewable, and explicit about what actually ran.
+    priority: high
+    owner: runtime
+    status: accepted
+    stage_ids:
+      - STAGE-06
+    source_refs:
+      - README.md#short-runs
+      - README.md#run-artifacts
+      - plan.md#execution-model
+      - plan.md#artifact-contract
+  - id: REQ-010
+    title: Checkpoint-Based Initialization
+    category: runtime
+    statement: >-
+      When initialization mode is `resume` or `finetune`, the system shall
+      resolve checkpoint sources before launch, validate compatibility, and
+      record checkpoint provenance in runtime artifacts.
+    fit_criterion: >-
+      Stage 7 defines symbolic checkpoint references, compatibility validation,
+      and manifest and summary recording for resumed or fine-tuned runs.
+    rationale: >-
+      Initialization behavior changes runtime meaning and must be explicit
+      before launch rather than inferred from trainer flags.
+    priority: medium
+    owner: runtime
+    status: accepted
+    stage_ids:
+      - STAGE-07
+    source_refs:
+      - plan.md#resume-and-fine-tune-contract
+      - plans/stages/07_resume_and_finetune/plan.md#scope
+  - id: REQ-011
+    title: Deterministic Compare And Matrix Workflow
+    category: analysis
+    statement: >-
+      When contributors run sweeps or compare experiments, the system shall
+      expand matrix variants deterministically and emit a versioned compare
+      report that preserves dataset, run profile, deployment target, runtime,
+      and fallback distinctions.
+    fit_criterion: >-
+      Stage 8 defines deterministic matrix variant IDs, versioned compare
+      report output, and comparison rules that do not silently mix datasets,
+      profiles, or deployment targets.
+    rationale: >-
+      Promotion discussions depend on shared, reviewable reports rather than
+      ad hoc manual interpretation of runtime outputs.
+    priority: medium
+    owner: analysis
+    status: accepted
+    stage_ids:
+      - STAGE-08
+    source_refs:
+      - README.md#comparison-and-test-expectations
+      - plan.md#matrix-and-sweep-execution
+      - plan.md#comparison-contract
+      - plans/stages/08_compare_and_matrix/plan.md#deliverables
+  - id: REQ-012
+    title: FPGA Deployment Extension
+    category: deployment
+    statement: >-
+      When contributors target FPGA deployment, the workbench shall resolve,
+      validate, and compare FPGA-targeted experiments through the shared system
+      while enforcing explicit FPGA-specific constraints and promotion gates.
+    fit_criterion: >-
+      Stage 9 defines independent FPGA profiles, shared-system resolution and
+      validation, and explicit promotion-grade hardware gate criteria.
+    rationale: >-
+      FPGA-first motivation is core to the repo, but the system is meant to stay
+      one shared workbench rather than becoming a side project.
+    priority: high
+    owner: deployment
+    status: accepted
+    stage_ids:
+      - STAGE-09
+    source_refs:
+      - README.md#deployment-base-defaults
+      - plan.md#deployment-track-model
+      - plans/stages/09_fpga_deployment/plan.md#done-criteria
+  - id: REQ-013
+    title: Curated Promotion Model
+    category: collaboration
+    statement: >-
+      When contributors share experiment work, the project shall keep upstream
+      experiment history curated and treat most experiment-only work as
+      branch-local or fork-local unless a result is explicitly promoted.
+    fit_criterion: >-
+      The docs consistently route experiment-only work to branches or forks and
+      reserve upstream merges for reusable framework changes, maintained bases,
+      docs, tests, or explicitly promoted experiments.
+    rationale: >-
+      The contribution model depends on maintainers not having to absorb every
+      exploratory experiment into the upstream repo.
+    priority: high
+    owner: collaboration
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-02
+      - STAGE-08
+      - STAGE-09
+    source_refs:
+      - README.md#sharing-and-promotion
+      - CONTRIBUTING.md#upstream-curation-and-fork-sharing
+      - plan.md#upstream-curation-forks-and-promotion
+  - id: REQ-014
+    title: Registers-First Planning Workflow
+    category: planning
+    statement: >-
+      When planning decisions change, maintainers shall update the canonical
+      registers first, then update ADRs when rationale changed, then update
+      trace links, and only then update the narrative docs.
+    fit_criterion: >-
+      The planning README defines the update order and the canonical registers
+      and trace files exist under `plans/`.
+    rationale: >-
+      The current doc set is strong on narrative explanation but needs a stable
+      atomized layer to stop contract drift and support deterministic review.
+    priority: high
+    owner: planning
+    status: accepted
+    stage_ids:
+      - STAGE-01
+    source_refs:
+      - plans/README.md
+      - plan-stages.md#working-rules
+  - id: REQ-015
+    title: Narrative Docs Cite Canonical IDs
+    category: planning
+    statement: >-
+      Narrative planning documents shall remain the human entrypoints, but each
+      major section shall point back to the relevant canonical IDs instead of
+      acting as the sole atomic source of truth.
+    fit_criterion: >-
+      The major sections in the top-level narrative docs and stage plans include
+      `Canonical IDs:` or `Coverage` references that point into the canonical
+      layer.
+    rationale: >-
+      Human-readable plans remain necessary, but they need explicit bridges back
+      to the structured source of truth to stay self-checking.
+    priority: medium
+    owner: planning
+    status: accepted
+    stage_ids:
+      - STAGE-01
+    source_refs:
+      - README.md#documentation-review-checklist
+      - plan.md
+      - plan-stages.md
+  - id: REQ-016
+    title: Stage Coverage Contracts
+    category: planning
+    statement: >-
+      Each stage plan shall declare the canonical requirements and constraints
+      it implements and the acceptance artifacts and collaboration risks it
+      verifies.
+    fit_criterion: >-
+      Every stage plan includes a non-empty `Coverage` section that lists
+      `REQ-*`, `CON-*`, `ACC-*`, and `R*` identifiers.
+    rationale: >-
+      Stage plans are the bridge between architecture narrative and
+      implementation order, so they need explicit traceability rather than only
+      prose summaries.
+    priority: medium
+    owner: planning
+    status: accepted
+    stage_ids:
+      - STAGE-01
+    source_refs:
+      - plan-stages.md
+      - plans/stages/01_foundation/plan.md
+  - id: REQ-017
+    title: Acceptance Artifacts For Stable Flows
+    category: planning
+    statement: >-
+      Stable end-to-end expectations shall be captured as tagged acceptance
+      scenarios, and volatile discovery areas shall use example maps with
+      explicit rules, examples, and open questions.
+    fit_criterion: >-
+      `plans/acceptance/` contains example maps for volatile areas and tagged
+      `.feature` files whose scenarios include `@ACC-*` plus linked `@REQ-*`
+      and `@CON-*` tags.
+    rationale: >-
+      Examples and scenarios make success criteria inspectable now and position
+      the planning set to become executable later.
+    priority: medium
+    owner: planning
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-08
+    source_refs:
+      - plans/acceptance/README.md
+      - plans/stages/08_compare_and_matrix/plan.md#deliverables
+  - id: REQ-018
+    title: Human Checksum Coverage Report
+    category: planning
+    statement: >-
+      The planning layer shall publish a human-readable coverage report that
+      summarizes orphan requirements, verification gaps, blocking unknowns,
+      superseded decision references, and unmapped collaboration risks.
+    fit_criterion: >-
+      `plans/trace/coverage.md` exists and reports the current status of those
+      consistency checks.
+    rationale: >-
+      The repo needs a small, reviewable checksum artifact that lets humans
+      judge whether the planning set still agrees as a whole.
+    priority: medium
+    owner: planning
+    status: accepted
+    stage_ids:
+      - STAGE-01
+      - STAGE-08
+    source_refs:
+      - plans/trace/coverage.md
+      - plans/collaboration-risk-matrix.md

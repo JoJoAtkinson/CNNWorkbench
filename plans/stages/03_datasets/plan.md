@@ -44,6 +44,12 @@ shared preparation path.
 - the catalog schema version and strict dataset metadata contract are explicit
   instead of being inferred from tests alone
 
+## Coverage
+
+- Implements: `REQ-006`
+- Constrains: `CON-007`
+- Verifies: `ACC-002`, `R4`, `R7`
+
 ## Done Criteria
 
 - dataset metadata is copied into resolved child configs
@@ -75,3 +81,5 @@ shared preparation path.
 
 - Stage 4 should be able to use the real dataset contract without adding a
   second dataset-preparation path.
+
+Canonical IDs: REQ-006, CON-007

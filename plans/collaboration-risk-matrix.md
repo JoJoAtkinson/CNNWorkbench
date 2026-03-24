@@ -6,7 +6,12 @@ This file is a thin audit layer over
 [plan.md](/Users/joe/GitHub/CNNWorkbench/plan.md),
 [plan-stages.md](/Users/joe/GitHub/CNNWorkbench/plan-stages.md), and the
 relevant stage plans. It does not define new runtime behavior; it verifies that
-the planning surfaces stay aligned on the collaboration model.
+the planning surfaces stay aligned on the collaboration model. The canonical
+collaboration-risk ledger now lives in
+[plans/registers/collaboration_risks.yaml](/Users/joe/GitHub/CNNWorkbench/plans/registers/collaboration_risks.yaml);
+this file remains the human-readable summary view.
+
+Canonical IDs: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, REQ-018
 
 ## How To Use This File
 
@@ -17,6 +22,8 @@ the planning surfaces stay aligned on the collaboration model.
   aligned and future edits must preserve that alignment.
 - `Stage owners` identifies the stage plans that must keep the risk enforced in
   their `Done Criteria`, `Test Gate`, or `Collaboration Risks` sections.
+
+Canonical IDs: REQ-018, REQ-016
 
 ## R1: Reproducibility
 

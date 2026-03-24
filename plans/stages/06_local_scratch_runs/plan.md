@@ -50,6 +50,12 @@ local runs and completes the runtime artifact story for the common fast path.
 - `run_local` can trigger the same bootstrap and build flow automatically before
   launch instead of requiring a separate manual build step
 
+## Coverage
+
+- Implements: `REQ-009`
+- Constrains: `CON-004`, `CON-005`, `CON-011`, `CON-012`
+- Verifies: `ACC-004`, `R1`, `R2`, `R7`, `R10`
+
 ## Done Criteria
 
 - `run_local --run-profile short` works end to end for scratch-mode experiments
@@ -92,3 +98,5 @@ local runs and completes the runtime artifact story for the common fast path.
 
 - Stage 7 should extend the run orchestration path with checkpoint-based
   initialization without rewriting local run ownership.
+
+Canonical IDs: REQ-009, CON-004, CON-005, CON-011, CON-012

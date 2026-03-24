@@ -15,6 +15,16 @@ project. The intended contribution model is:
 This file explains how to contribute against that design and doubles as a
 checksum for whether the project structure is actually contributor-friendly.
 
+Planning update order now matters:
+
+1. update the canonical register entry under `plans/registers/`
+2. update the related ADR when rationale changed
+3. update `plans/trace/trace.csv` and `plans/trace/coverage.md`
+4. update the affected narrative docs
+5. only then implement code
+
+Canonical IDs: REQ-013, REQ-014, REQ-015, REQ-018, CON-005
+
 ## Current Repository State
 
 Today this repository is still plan-first. The tracked source currently consists
@@ -31,6 +41,8 @@ That means:
 - if the repo contents and this file ever disagree, update the plan first, then
   update docs, then implement code
 
+Canonical IDs: REQ-014, REQ-015, ASM-001, ASM-006
+
 ## Contribution Principles
 
 - Prefer the smallest change surface that solves the problem.
@@ -44,6 +56,8 @@ That means:
   of a low-context tool error.
 - Do not design the contribution flow around maintainers reviewing every
   community experiment.
+
+Canonical IDs: REQ-001, REQ-004, REQ-013, CON-002, CON-003
 
 ## Choose The Right Contribution Surface
 
@@ -123,6 +137,8 @@ Working rules:
   experiments intended to be shared outside a private workspace.
 - GitHub pull requests compare one branch against upstream. Other experiment
   branches can stay in your fork and do not have to be merged upstream.
+
+Canonical IDs: REQ-013, ADR-0005, R5
 
 ## Intended Setup Flow
 
@@ -243,6 +259,8 @@ Every contribution should preserve these properties:
 - no hidden defaults outside the documented config and artifact contracts
 - no per-experiment forks of shared math or trainer behavior
 
+Canonical IDs: REQ-001, REQ-011, CON-003, CON-005
+
 Minimum test expectations for implementation contributions:
 
 - validate the changed contract at the narrowest useful level
@@ -281,6 +299,13 @@ Before opening a PR, confirm:
 - if you added the second implementation in a registry family, you also proved
   the extension path is understandable through docs and tests
 
+Also confirm:
+
+- the affected canonical IDs still point at the right docs
+- the trace and coverage files were updated when the planning contract changed
+
+Canonical IDs: REQ-014, REQ-015, REQ-018
+
 ## Contribution Checksum
 
 This project is easy to contribute to only if all of the following stay true:
@@ -299,3 +324,5 @@ This project is easy to contribute to only if all of the following stay true:
 
 If any of those stop being true, treat that as an architecture regression and
 fix the design before adding more features.
+
+Canonical IDs: REQ-013, CON-003, CON-005, R2, R5, R10

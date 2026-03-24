@@ -1,0 +1,122 @@
+from_id,to_id,relationship,notes
+REQ-001,ADR-0001,decided_by,Config-first experiment history
+REQ-001,STAGE-01,implemented_in_stage,Foundation seeds tracked experiment roots
+REQ-001,STAGE-02,implemented_in_stage,Authoring flow scaffolds derived experiments
+REQ-001,ACC-001,verified_by,Scaffold and resolve scenarios
+REQ-002,ADR-0002,decided_by,Resolved child run is the runtime contract
+REQ-002,ADR-0003,decided_by,Boundary keeps resolution in Python and execution in C++
+REQ-002,STAGE-01,implemented_in_stage,Shared domain models established
+REQ-002,STAGE-02,implemented_in_stage,Resolution emits child-run contracts
+REQ-002,STAGE-05,implemented_in_stage,Trainer consumes resolved config only
+REQ-002,ACC-001,verified_by,Resolve scenarios verify child-run materialization
+REQ-003,ADR-0001,decided_by,Config-first bases establish deployment roots
+REQ-003,STAGE-01,implemented_in_stage,Seed bases exist in tracked repo layout
+REQ-003,STAGE-09,implemented_in_stage,FPGA path remains part of the shared root model
+REQ-003,ACC-006,verified_by,FPGA scenarios depend on track-aware bases
+REQ-004,ADR-0001,decided_by,Authoring remains config-first
+REQ-004,ADR-0003,decided_by,Authoring tools stay in Python orchestration
+REQ-004,STAGE-02,implemented_in_stage,Scaffold check and resolve authoring flow
+REQ-004,STAGE-04,implemented_in_stage,Authoring-only environments remain first-class
+REQ-004,ACC-001,verified_by,Authoring and resolution scenarios
+REQ-005,ADR-0002,decided_by,Structured output belongs to the shared contract layer
+REQ-005,STAGE-02,implemented_in_stage,Validation output contract
+REQ-005,ACC-001,verified_by,Aggregated validation errors scenario
+REQ-006,ADR-0002,decided_by,Resolved child runs carry dataset metadata
+REQ-006,STAGE-03,implemented_in_stage,Dataset catalog and prepare flow
+REQ-006,ACC-002,verified_by,Dataset preparation scenarios
+REQ-007,ADR-0004,decided_by,Doctor is the entrypoint for environment diagnostics
+REQ-007,STAGE-04,implemented_in_stage,Environment classification and gating
+REQ-007,ACC-003,verified_by,Environment classification scenarios
+REQ-008,ADR-0002,decided_by,Build consumes the shared runtime contract
+REQ-008,ADR-0004,decided_by,Build follows environment strategy
+REQ-008,STAGE-04,implemented_in_stage,Libtorch bootstrap and platform selection
+REQ-008,STAGE-05,implemented_in_stage,CMake build and fingerprinting
+REQ-008,ACC-003,verified_by,Build scenarios
+REQ-009,ADR-0002,decided_by,Run execution consumes resolved child runs
+REQ-009,ADR-0006,decided_by,Run artifacts stay text-first and versioned
+REQ-009,STAGE-06,implemented_in_stage,Local scratch execution and artifact writing
+REQ-009,ACC-004,verified_by,Local run scenarios
+REQ-010,ADR-0002,decided_by,Initialization is part of the resolved contract
+REQ-010,STAGE-07,implemented_in_stage,Resume and fine-tune support
+REQ-010,ACC-005,verified_by,Checkpoint initialization scenarios
+REQ-011,ADR-0005,decided_by,Promotion depends on curated history rather than automatic upstreaming
+REQ-011,ADR-0006,decided_by,Compare reports stay text-first and versioned
+REQ-011,STAGE-08,implemented_in_stage,Matrix and compare workflows
+REQ-011,ACC-005,verified_by,Compare scenarios
+REQ-012,ADR-0005,decided_by,FPGA promotion happens inside the curated model
+REQ-012,STAGE-09,implemented_in_stage,FPGA deployment extension
+REQ-012,ACC-006,verified_by,FPGA scenarios
+REQ-013,ADR-0005,decided_by,Curated upstream experiment history
+REQ-013,STAGE-01,implemented_in_stage,Foundation seeds curated repo-shape rules
+REQ-013,STAGE-02,implemented_in_stage,Authoring flow preserves repo-local numbering and ownership
+REQ-013,STAGE-08,implemented_in_stage,Reports support promotion discussions without upstreaming all results
+REQ-013,STAGE-09,implemented_in_stage,FPGA promotion stays explicit
+REQ-013,ACC-006,verified_by,FPGA promotion scenarios
+REQ-014,ADR-0006,decided_by,Planning artifacts stay text-first and layered
+REQ-014,STAGE-01,implemented_in_stage,Foundation now includes the canonical planning layer
+REQ-014,ACC-007,verified_by,Planning update-order scenario
+REQ-015,ADR-0006,decided_by,Narrative docs remain readable projections
+REQ-015,STAGE-01,implemented_in_stage,Narrative docs cite canonical IDs
+REQ-015,ACC-007,verified_by,Planning citation scenarios
+REQ-016,ADR-0006,decided_by,Stage coverage is part of the planning trace layer
+REQ-016,STAGE-01,implemented_in_stage,Stage plans declare explicit coverage
+REQ-016,ACC-007,verified_by,Stage coverage scenario
+REQ-017,ADR-0006,decided_by,Acceptance artifacts remain readable and tagged
+REQ-017,STAGE-01,implemented_in_stage,Acceptance folder seeded in planning layer
+REQ-017,STAGE-08,implemented_in_stage,Comparison and report workflows stay connected to acceptance artifacts
+REQ-017,ACC-007,verified_by,Planning acceptance-artifact scenario
+REQ-018,ADR-0006,decided_by,Checksum report is a text-first planning artifact
+REQ-018,STAGE-01,implemented_in_stage,Coverage report introduced in planning layer
+REQ-018,STAGE-08,implemented_in_stage,Report-oriented stage deepens review surfaces
+REQ-018,ACC-007,verified_by,Coverage report scenario
+CON-001,ADR-0001,decided_by,Config-first history depends on immutable roots
+CON-001,ACC-001,verified_by,Authoring scenarios preserve template and experiment history
+CON-002,ADR-0001,decided_by,Config-first experiments keep deploy and runtime intent explicit
+CON-002,ACC-001,verified_by,Authoring scenarios keep runtime and deploy target separate
+CON-003,ADR-0003,decided_by,Python and C++ ownership boundary
+CON-003,ACC-001,verified_by,Authoring flow routes changes to the correct layer
+CON-003,ACC-003,verified_by,Build flow preserves the trainer boundary
+CON-004,ADR-0004,decided_by,Environment strategy defines fallback discipline
+CON-004,ACC-004,verified_by,Short-run fallback and full-run policy scenarios
+CON-005,ADR-0006,decided_by,Text-first versioned artifact policy
+CON-005,ACC-005,verified_by,Compare output remains text-first and versioned
+CON-005,ACC-007,verified_by,Planning layer uses readable ledgers and reports
+CON-006,ADR-0004,decided_by,Environment strategy depends on pinned Libtorch inputs
+CON-006,ACC-003,verified_by,Libtorch checksum and pinning scenario
+CON-007,ADR-0002,decided_by,Dataset metadata is part of the resolved contract
+CON-007,ACC-002,verified_by,Dataset metadata scenarios
+CON-008,ADR-0004,decided_by,One Python environment contract
+CON-008,ACC-003,verified_by,Doctor and build scenarios use uv and python -m
+CON-009,ACC-007,verified_by,Planning consistency scenarios enforce stage coverage and blocking unknown rules
+CON-010,ACC-006,verified_by,FPGA profile independence scenario
+CON-011,ADR-0005,decided_by,Curated promotion model depends on git-level provenance
+CON-011,ACC-004,verified_by,Local run provenance scenario
+CON-012,ACC-004,verified_by,Clean-tree full-run policy scenario
+R1,STAGE-01,verified_by,Foundation documents the canonical bootstrap path
+R1,STAGE-04,verified_by,Environment bootstrap and doctor stay deterministic
+R1,STAGE-05,verified_by,Build contract remains repeatable
+R1,STAGE-06,verified_by,Run artifacts preserve provenance
+R2,STAGE-02,verified_by,Authoring flow keeps change size reviewable
+R2,STAGE-06,verified_by,Short runs remain the normal fast-feedback loop
+R2,STAGE-08,verified_by,Promotion discussions use reports rather than raw sweeps
+R3,STAGE-01,verified_by,Foundation owns the minimum CI and test-gate contract
+R4,STAGE-02,verified_by,Authoring rules remain explicit in docs
+R4,STAGE-03,verified_by,Dataset schema and cache rules remain explicit
+R4,STAGE-08,verified_by,Promotion reasoning stays explicit in reports
+R4,STAGE-09,verified_by,FPGA promotion criteria stay explicit
+R5,STAGE-01,verified_by,Foundation defines curated ownership surfaces
+R5,STAGE-02,verified_by,Authoring flow preserves repo-local numbering and routing
+R6,STAGE-01,verified_by,Repo shape is defined once
+R6,STAGE-04,verified_by,Bootstrap paths stay explicit
+R6,STAGE-05,verified_by,Build roots stay environment-scoped
+R7,STAGE-01,verified_by,Tracked-versus-local boundary is set early
+R7,STAGE-03,verified_by,Dataset cache versus tracked inputs stays explicit
+R7,STAGE-06,verified_by,Runtime outputs stay out of tracked source
+R8,STAGE-04,verified_by,Libtorch lockfile policy is preserved
+R8,STAGE-05,verified_by,CMake and fingerprint contract stay stable
+R9,STAGE-01,verified_by,Foundation keeps uv and python -m as the only Python path
+R9,STAGE-04,verified_by,Doctor and bootstrap preserve the same Python contract
+R10,STAGE-01,verified_by,Tracked text artifacts remain first-class review surfaces
+R10,STAGE-06,verified_by,Run manifests and summaries stay canonical
+R10,STAGE-08,verified_by,Compare reports stay text-first
+R10,STAGE-09,verified_by,FPGA validation outputs stay text-first

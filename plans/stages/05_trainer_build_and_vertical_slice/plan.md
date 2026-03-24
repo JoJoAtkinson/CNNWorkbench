@@ -49,6 +49,12 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
   smoke and integration tests against tiny resolved-config fixtures
 - config-only experiment changes do not trigger unnecessary trainer rebuilds
 
+## Coverage
+
+- Implements: `REQ-002`, `REQ-008`
+- Constrains: `CON-003`, `CON-006`
+- Verifies: `ACC-003`, `R1`, `R6`, `R8`
+
 ## Done Criteria
 
 - `build` produces a working binary from the tracked C++ source tree
@@ -83,3 +89,5 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 
 - Stage 6 should be able to orchestrate the trainer locally without changing the
   trainer contract.
+
+Canonical IDs: REQ-002, REQ-008, CON-003, CON-006

@@ -57,6 +57,12 @@ preview the exact child-run contract the trainer would receive.
 - preview output makes initialization state explicit even before the operational
   resume/finetune path exists
 
+## Coverage
+
+- Implements: `REQ-001`, `REQ-002`, `REQ-004`, `REQ-005`, `REQ-013`
+- Constrains: `CON-001`, `CON-002`
+- Verifies: `ACC-001`, `R2`, `R4`, `R5`
+
 ## Done Criteria
 
 - the authored config surface is enforced as documented
@@ -95,3 +101,5 @@ preview the exact child-run contract the trainer would receive.
 
 - Stage 3 replaces fixture dataset metadata with real dataset catalog and
   preparation logic without changing the resolved contract shape.
+
+Canonical IDs: REQ-001, REQ-002, REQ-004, REQ-005, REQ-013, CON-001, CON-002

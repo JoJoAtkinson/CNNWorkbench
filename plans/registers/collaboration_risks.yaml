@@ -1,0 +1,151 @@
+collaboration_risks:
+  - id: R1
+    name: Reproducibility
+    statement: >-
+      The setup flow, bootstrap ownership, and runtime provenance rules must
+      stay aligned across the top-level docs and the stages that own execution.
+    pass_test: >-
+      The documented setup flow and provenance rules match across README,
+      CONTRIBUTING, plan.md, and the owning stage plans.
+    stage_owners:
+      - STAGE-01
+      - STAGE-04
+      - STAGE-05
+      - STAGE-06
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r1-reproducibility
+  - id: R2
+    name: Reviewable Change Size
+    statement: >-
+      Contributors must be able to validate changes through the smallest useful
+      surface before larger promotion or comparison decisions are made.
+    pass_test: >-
+      The docs consistently require smallest-change-surface edits,
+      `resolve --diff-from-parent`, and short-run-first validation.
+    stage_owners:
+      - STAGE-02
+      - STAGE-06
+      - STAGE-08
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r2-reviewable-change-size
+  - id: R3
+    name: Trusted CI And Test Gates
+    statement: >-
+      Every stage needs a stable automated gate and the minimum CI surface must
+      stay consistent across the planning set.
+    pass_test: >-
+      The minimum CI workflow and stage-level automated gates match everywhere
+      they are described.
+    stage_owners:
+      - STAGE-01
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r3-trusted-ci-and-test-gates
+  - id: R4
+    name: Explicit Rationale And Documentation
+    statement: >-
+      Architecture rationale, promotion rules, schema decisions, and validation
+      expectations must remain explicit in prose rather than inferred only from
+      future implementation.
+    pass_test: >-
+      The relevant top-level docs and stage plans still explain the rationale
+      for contract-shaping decisions.
+    stage_owners:
+      - STAGE-02
+      - STAGE-03
+      - STAGE-08
+      - STAGE-09
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r4-explicit-rationale-and-documentation
+  - id: R5
+    name: Ownership And Review Routing
+    statement: >-
+      Fork-vs-upstream ownership and the intended review surface for experiments
+      and reusable code must stay legible.
+    pass_test: >-
+      The curated-upstream model, promotion rules, and change-surface guidance
+      agree across the collaboration docs and authoring stages.
+    stage_owners:
+      - STAGE-01
+      - STAGE-02
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r5-ownership-and-review-routing
+  - id: R6
+    name: Repo Topology And Bootstrap Simplicity
+    statement: >-
+      The repo shape, bootstrap path, and build-root ownership must remain
+      explicit and singular rather than drifting into alternate side flows.
+    pass_test: >-
+      The repo layout and bootstrap path are described consistently without
+      hidden mandatory side repos or extra setup contracts.
+    stage_owners:
+      - STAGE-01
+      - STAGE-04
+      - STAGE-05
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r6-repo-topology-and-bootstrap-simplicity
+  - id: R7
+    name: Generated Artifacts And Local Data Staying Out Of Git
+    statement: >-
+      The project must keep tracked contract artifacts distinct from local
+      datasets, run outputs, build outputs, and other reusable caches.
+    pass_test: >-
+      The ignore rules and docs agree about which paths are tracked source of
+      truth versus disposable or local runtime output.
+    stage_owners:
+      - STAGE-01
+      - STAGE-03
+      - STAGE-06
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r7-generated-artifacts-and-local-data-staying-out-of-git
+  - id: R8
+    name: C++ Toolchain And ABI Stability
+    statement: >-
+      Toolchain-sensitive trainer inputs must stay pinned and consistently
+      described across environment and build planning surfaces.
+    pass_test: >-
+      The CMake floor, trainer target identity, lockfile policy, and fingerprint
+      inputs match between the top-level plan and the owning stages.
+    stage_owners:
+      - STAGE-04
+      - STAGE-05
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r8-c-toolchain-and-abi-stability
+  - id: R9
+    name: Python Environment Discipline
+    statement: >-
+      Contributors need one documented Python setup path so host, container, and
+      CI usage do not drift into incompatible workflows.
+    pass_test: >-
+      `uv`, project bootstrap scripts, and `python -m` entrypoints remain the
+      only documented Python setup path across the core docs and owning stages.
+    stage_owners:
+      - STAGE-01
+      - STAGE-04
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r9-python-environment-discipline
+  - id: R10
+    name: Git-Friendly Collaboration Surfaces
+    statement: >-
+      Text-based configs, manifests, summaries, and reports must remain the
+      primary review surface instead of opaque generated artifacts or side
+      channels.
+    pass_test: >-
+      The canonical review artifacts remain text-first and versioned across run
+      execution, compare, FPGA validation, and planning outputs.
+    stage_owners:
+      - STAGE-01
+      - STAGE-06
+      - STAGE-08
+      - STAGE-09
+    status: active
+    source_refs:
+      - plans/collaboration-risk-matrix.md#r10-git-friendly-collaboration-surfaces

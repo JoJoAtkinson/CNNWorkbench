@@ -1,0 +1,192 @@
+constraints:
+  - id: CON-001
+    title: Template Root And Historical Immutability
+    statement: >-
+      `000_template` is the global schema root and is never runnable, and
+      finished experiments and finished bases remain immutable runtime-defining
+      history.
+    rationale: >-
+      Template and historical experiment roots anchor reproducibility and must
+      not silently change runtime meaning after they have been used.
+    severity: high
+    owner: architecture
+    status: accepted
+    source_refs:
+      - README.md#mental-model
+      - CONTRIBUTING.md#normal-contribution-workflow
+      - plan.md#core-decisions
+  - id: CON-002
+    title: Runtime And Deploy Target Stay Separate
+    statement: >-
+      `runtime.train_runtime` and deployment target or track remain separate
+      concepts, and non-base experiments must not switch deployment target
+      mid-chain.
+    rationale: >-
+      Runtime backend selection answers where a run executes, while deployment
+      target answers what kind of system the experiment is meant to support.
+    severity: high
+    owner: architecture
+    status: accepted
+    source_refs:
+      - README.md#how-to-change-behavior
+      - plan.md#deployment-track-model
+      - plan.md#validation-and-error-handling
+  - id: CON-003
+    title: Python And C++ Ownership Boundary
+    statement: >-
+      Python owns authored config loading, resolution, dataset expansion,
+      policy checks, orchestration, and comparison, while C++ owns one resolved
+      child run at a time.
+    rationale: >-
+      The project depends on a narrow trainer boundary to avoid reimplementing
+      orchestration logic inside the runtime layer.
+    severity: high
+    owner: architecture
+    status: accepted
+    source_refs:
+      - README.md#architecture
+      - CONTRIBUTING.md#choose-the-right-contribution-surface
+      - plan.md#orchestration-boundaries
+  - id: CON-004
+    title: Phase 1 Run Profiles And Fallback
+    statement: >-
+      Phase 1 run profiles are only `short` and `full`, and accelerated requests
+      may fall back to CPU only for short local runs when no accelerated backend
+      is available.
+    rationale: >-
+      Short runs are the designated fast-feedback loop, while canonical full
+      runs must preserve the intended runtime contract.
+    severity: medium
+    owner: runtime
+    status: accepted
+    source_refs:
+      - README.md#short-runs
+      - plan.md#core-decisions
+      - plans/mock_implementation_learned.md#stage-4-environment-detection-and-libtorch-download
+  - id: CON-005
+    title: Text-First Versioned Artifacts
+    statement: >-
+      Runtime artifacts, compare outputs, and planning outputs remain
+      text-first, versioned, and reviewable, and opaque generated artifacts do
+      not become the canonical collaboration surface.
+    rationale: >-
+      The contribution model relies on Git-friendly artifacts that humans can
+      inspect and discuss without hidden state.
+    severity: high
+    owner: collaboration
+    status: accepted
+    source_refs:
+      - README.md#run-artifacts
+      - CONTRIBUTING.md#contribution-checksum
+      - plan.md#artifact-contract
+      - plans/collaboration-risk-matrix.md#r10-git-friendly-collaboration-surfaces
+  - id: CON-006
+    title: Project-Wide LibTorch Pinning
+    statement: >-
+      LibTorch versioning is controlled by one project-wide lock file with exact
+      package checksums, and newer releases may warn but must not auto-upgrade
+      the pinned project version.
+    rationale: >-
+      Toolchain reproducibility depends on one shared dependency contract rather
+      than ad hoc version selection by environment or experiment.
+    severity: high
+    owner: build
+    status: accepted
+    source_refs:
+      - README.md#quick-start
+      - plan.md#build-and-bootstrap
+      - plans/mock_implementation_learned.md#stage-4-environment-detection-and-libtorch-download
+  - id: CON-007
+    title: Strict Phase 1 Dataset Metadata
+    statement: >-
+      Phase 1 dataset metadata is strict: persisted `metadata.json` contains
+      only `input_channels` and `num_classes`, and cache reuse requires valid
+      metadata plus a configured sentinel when one exists.
+    rationale: >-
+      Shared dataset preparation needs a small, testable contract before the
+      project can safely expand metadata shape or cache semantics.
+    severity: medium
+    owner: datasets
+    status: accepted
+    source_refs:
+      - README.md#dataset-preparation
+      - plan.md#dataset-catalog-contract
+      - plans/mock_implementation_learned.md#stage-3-dataset-catalog-and-preparation
+  - id: CON-008
+    title: Canonical Python Environment Discipline
+    statement: >-
+      The documented Python entrypoints are `uv` plus `python -m`, and setup,
+      doctor, build, and run flows do not rely on a second Python environment
+      contract.
+    rationale: >-
+      One Python workflow keeps contributor setup legible and reduces hidden
+      environment drift across host, container, and CI usage.
+    severity: medium
+    owner: environment
+    status: accepted
+    source_refs:
+      - README.md#quick-start
+      - CONTRIBUTING.md#intended-setup-flow
+      - plan.md#developer-task-aliases-and-ci
+      - plans/collaboration-risk-matrix.md#r9-python-environment-discipline
+  - id: CON-009
+    title: Stage Exit And Blocking Unknown Rule
+    statement: >-
+      Every stage plan must keep non-empty Coverage, Done Criteria, and Test
+      Gate sections, and no stage may be treated as ready or complete while it
+      depends on an open blocking unknown.
+    rationale: >-
+      The staged-delivery model works only if each stage carries explicit scope,
+      verification, and unresolved-scope handling instead of vague readiness.
+    severity: high
+    owner: planning
+    status: accepted
+    source_refs:
+      - plan-stages.md#stage-exit-rule
+      - plans/stages/01_foundation/plan.md
+      - plans/trace/coverage.md
+  - id: CON-010
+    title: Independent Phase 1 FPGA Profiles
+    statement: >-
+      Phase 1 FPGA deploy profiles are independent named profiles and do not
+      inherit or compose implicitly.
+    rationale: >-
+      The FPGA path is still stabilizing, so hidden profile composition would
+      make validation and promotion rules hard to audit.
+    severity: medium
+    owner: deployment
+    status: accepted
+    source_refs:
+      - plan.md#deployment-track-model
+      - plans/mock_implementation_learned.md#stage-9-fpga-deployment-extension
+      - plans/stages/09_fpga_deployment/plan.md#scope
+  - id: CON-011
+    title: Git-Based Reproducibility
+    statement: >-
+      Reproducibility uses tracked experiment folders plus git provenance and
+      runtime artifacts rather than per-run source snapshots.
+    rationale: >-
+      The project wants reproducible runs without multiplying opaque source
+      archives inside runtime outputs.
+    severity: high
+    owner: collaboration
+    status: accepted
+    source_refs:
+      - README.md#reproducibility-and-git-discipline
+      - plan.md#core-decisions
+      - plan.md#run-metadata-and-tags
+  - id: CON-012
+    title: Clean-Tree Canonical Full Runs
+    statement: >-
+      Canonical full runs come from a clean git tree by default, and dirty-tree
+      full runs require an explicit override.
+    rationale: >-
+      The project uses runtime artifacts as review surfaces, so full-run claims
+      need a strong default provenance bar.
+    severity: medium
+    owner: runtime
+    status: accepted
+    source_refs:
+      - README.md#reproducibility-and-git-discipline
+      - plan.md#core-decisions
+      - plans/stages/06_local_scratch_runs/plan.md#done-criteria

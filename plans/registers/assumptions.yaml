@@ -1,0 +1,102 @@
+assumptions:
+  - id: ASM-001
+    statement: >-
+      Contributors will keep using the repository-level planning docs to
+      understand the system before implementation exists, so the planning layer
+      must stay readable without bespoke tooling.
+    why_held: >-
+      The repo is still plan-first and already treats docs as part of the
+      project history and collaboration model.
+    risk_if_false: >-
+      If contributors only use generated reports or future tooling, the
+      narrative docs and glossary may decay and the planning layer will become
+      harder to review casually.
+    owner: planning
+    review_trigger: narrative docs stop serving as the primary onboarding path
+    status: validated
+    source_refs:
+      - plans/README.md
+      - CONTRIBUTING.md#current-repository-state
+  - id: ASM-002
+    statement: >-
+      Docker or Dev Container workflows remain the most repeatable accelerated
+      CUDA authoring path for supported Windows and Linux environments.
+    why_held: >-
+      The current architecture and quick-start docs already center the CUDA path
+      on containerized execution for reproducibility.
+    risk_if_false: >-
+      If native CUDA authoring becomes equally important, environment guidance,
+      policy checks, and bootstrap ownership will need a wider contract.
+    owner: environment
+    review_trigger: native CUDA host execution becomes a first-class supported path
+    status: validated
+    source_refs:
+      - README.md#compatibility-and-preflight
+      - plan.md#core-decisions
+  - id: ASM-003
+    statement: >-
+      Native Apple Silicon MPS support is worth preserving as a distinct
+      accelerated path instead of forcing all accelerated development through
+      the CUDA container story.
+    why_held: >-
+      The current plan explicitly positions MPS as a first-class local path for
+      Apple Silicon contributors.
+    risk_if_false: >-
+      If MPS support is dropped, contributor setup, doctor output, and stage
+      coverage would all simplify, but the current docs would overstate support.
+    owner: environment
+    review_trigger: MPS support is deprecated or replaced
+    status: validated
+    source_refs:
+      - README.md#compatibility-and-preflight
+      - plan.md#supported-local-environments
+  - id: ASM-004
+    statement: >-
+      Acceptance `.feature` files are planning artifacts first and future
+      executable specifications second.
+    why_held: >-
+      The repo has not implemented the product yet, but it still benefits from
+      stable scenario framing that can later be automated.
+    risk_if_false: >-
+      If feature files are treated as executable immediately, the planning layer
+      may overfit early tool choices or create brittle pseudo-tests.
+    owner: planning
+    review_trigger: feature files enter an automated test runner
+    status: validated
+    source_refs:
+      - plans/acceptance/README.md
+      - plans/registers/requirements.yaml
+  - id: ASM-005
+    statement: >-
+      The curated upstream experiment model is sustainable only if most
+      experiment-only work stays in branches or forks instead of being promoted
+      by default.
+    why_held: >-
+      The current contribution guidance is optimized around small reusable
+      upstream changes and selective experiment promotion.
+    risk_if_false: >-
+      If maintainers choose to own most experiments upstream, numbering,
+      reviewability, and contribution guidance will need a materially different
+      contract.
+    owner: collaboration
+    review_trigger: upstream begins accepting most experiment-only PRs
+    status: validated
+    source_refs:
+      - README.md#sharing-and-promotion
+      - CONTRIBUTING.md#upstream-curation-and-fork-sharing
+  - id: ASM-006
+    statement: >-
+      The planning artifacts will remain in the repo after implementation lands
+      because they are still needed for audit, regeneration, and onboarding.
+    why_held: >-
+      The project already treats the plan set as part of the long-lived repo
+      history rather than disposable scaffolding.
+    risk_if_false: >-
+      If plans are deleted after implementation, traceability and rationale will
+      shift back into ad hoc docs or commit archaeology.
+    owner: planning
+    review_trigger: maintainers propose removing planning artifacts after implementation
+    status: validated
+    source_refs:
+      - plans/README.md
+      - CONTRIBUTING.md#current-repository-state

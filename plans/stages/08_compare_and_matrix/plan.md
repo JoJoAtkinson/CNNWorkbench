@@ -47,6 +47,12 @@ validation harness used across deployment targets.
 - deployment validation uses one common contract instead of separate per-target
   paths
 
+## Coverage
+
+- Implements: `REQ-011`, `REQ-013`, `REQ-017`, `REQ-018`
+- Constrains: `CON-005`
+- Verifies: `ACC-005`, `ACC-007`, `R2`, `R4`, `R10`
+
 ## Done Criteria
 
 - matrix definitions expand into deterministic variants without collisions
@@ -81,3 +87,5 @@ validation harness used across deployment targets.
 
 - Stage 9 should layer FPGA-specific deployment constraints onto the shared
   smoke harness instead of inventing a separate validation universe.
+
+Canonical IDs: REQ-011, REQ-013, REQ-017, REQ-018, CON-005

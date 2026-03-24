@@ -47,6 +47,12 @@ initialization with clear provenance.
 - the C++ trainer can load checkpoint state through the same narrow resolved
   config contract it already uses for scratch runs
 
+## Coverage
+
+- Implements: `REQ-010`
+- Constrains: `CON-005`
+- Verifies: `ACC-005`
+
 ## Done Criteria
 
 - `resume` restores model and optimizer state correctly
@@ -65,3 +71,5 @@ initialization with clear provenance.
 
 - Stage 8 should be able to compare and matrix-expand runs that include scratch,
   resume, and fine-tune provenance.
+
+Canonical IDs: REQ-010, CON-005

@@ -1,0 +1,59 @@
+unknowns:
+  - id: UNK-001
+    question: >-
+      What is the exact contract shape for the future Azure submission module,
+      including queue metadata, artifact handoff, and failure-reporting
+      behavior?
+    impact: >-
+      Remote execution cannot be planned in detail without pinning how the
+      existing resolved child-run contract maps onto Azure job semantics.
+    blocking: false
+    owner: architecture
+    target_stage: future-azure
+    status: open
+    source_refs:
+      - README.md#goals
+      - plan.md#repository-shape
+      - plan.md#shared-domain-model
+  - id: UNK-002
+    question: >-
+      Should compare support additional filter surfaces such as `--tag` or
+      `--matrix`, and what report contract should those filters produce?
+    impact: >-
+      Stage 8 comparison ergonomics may expand, but the current report contract
+      should not be designed around speculative filter behavior.
+    blocking: false
+    owner: analysis
+    target_stage: STAGE-08
+    status: open
+    source_refs:
+      - plan-stages.md#stage-8-comparison-and-matrix-workflows
+      - plans/stages/08_compare_and_matrix/plan.md#out-of-scope
+  - id: UNK-003
+    question: >-
+      When future FPGA profiles arrive, should the project add an explicit
+      shared composition model or keep each profile independently authored?
+    impact: >-
+      FPGA validation and profile reuse could become awkward if the number of
+      deploy profiles grows without a deliberate composition rule.
+    blocking: false
+    owner: deployment
+    target_stage: STAGE-09
+    status: open
+    source_refs:
+      - plan.md#deployment-track-model
+      - plans/mock_implementation_learned.md#stage-9-fpga-deployment-extension
+  - id: UNK-004
+    question: >-
+      Should the planning consistency layer gain automated schema and trace
+      checks in CI once the implementation repo skeleton exists?
+    impact: >-
+      Manual checksum artifacts are useful now, but drift will be easier to miss
+      if consistency checks never become automated.
+    blocking: false
+    owner: planning
+    target_stage: planning-infrastructure
+    status: open
+    source_refs:
+      - README.md#task-aliases-and-ci
+      - plans/trace/coverage.md

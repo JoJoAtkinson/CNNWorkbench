@@ -51,6 +51,12 @@ the shared system rather than a separate project.
 - promotion-grade FPGA decisions use an explicit hardware gate instead of
   unstated reviewer judgment
 
+## Coverage
+
+- Implements: `REQ-003`, `REQ-012`, `REQ-013`
+- Constrains: `CON-010`
+- Verifies: `ACC-006`, `R4`, `R10`
+
 ## Done Criteria
 
 - FPGA-targeted experiments resolve and validate through the same core path as
@@ -85,3 +91,5 @@ the shared system rather than a separate project.
 
 - Once this stage is complete, the repo should support the full FPGA-first but
   flexible cross-target architecture described in the top-level design docs.
+
+Canonical IDs: REQ-003, REQ-012, REQ-013, CON-010

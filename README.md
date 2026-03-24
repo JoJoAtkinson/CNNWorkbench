@@ -43,6 +43,15 @@ For interactive development, debugging, and stepping through the code on the
 CUDA path, the recommended experience is a Dev Container that reuses that same
 Docker environment.
 
+Planning source of truth:
+
+- canonical atomic records live under `plans/registers/`
+- durable rationale lives under `plans/decisions/`
+- trace and checksum reporting live under `plans/trace/`
+- this README remains the newcomer-facing narrative entrypoint
+
+Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-013, REQ-014, REQ-015, CON-003, CON-005
+
 ## Goals
 
 - A new user can create a baseline experiment.
@@ -55,6 +64,8 @@ Docker environment.
 - A user can compare results across experiments without digging through git
   history.
 - The same resolved child-run contract can later be used for Azure.
+
+Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-009, REQ-011, REQ-012
 
 ## Mental Model
 
@@ -86,6 +97,8 @@ The key machine-facing distinction is:
 - the resolved child run is the transferable execution contract used locally or
   on a remote node
 
+Canonical IDs: REQ-001, REQ-002, CON-001, CON-003
+
 ## Architecture
 
 The maintainable split is:
@@ -100,6 +113,8 @@ The maintainable split is:
   `run_manifest.json`, and `summary.json`
 - launch gating lives in one shared policy layer rather than being repeated in
   each command
+
+Canonical IDs: REQ-002, REQ-007, REQ-008, REQ-009, CON-003, CON-005
 
 ## Planned Repository Layout
 
@@ -966,6 +981,8 @@ make compare EXPERIMENTS="100_accelerated_base_v1 102_accelerated_wider_model"
 The minimum tracked CI surface is at least one workflow under
 `.github/workflows/` that runs `make test`.
 
+Canonical IDs: REQ-008, CON-008, R3, R9
+
 ## Documentation Review Checklist
 
 Before implementation, this README should still feel correct to a new user:
@@ -989,3 +1006,12 @@ Before implementation, this README should still feel correct to a new user:
 
 If the answer to any of these is no, update `plan.md` first, then update this
 README, and only then implement code.
+
+Now also confirm the canonical planning layer is still aligned:
+
+- did the changed rule update the relevant `REQ-*`, `CON-*`, `ASM-*`, `UNK-*`,
+  or `R*` entry first?
+- if the rationale changed, did the related ADR change too?
+- did `plans/trace/trace.csv` and `plans/trace/coverage.md` stay current?
+
+Canonical IDs: REQ-014, REQ-015, REQ-018, ACC-007, CON-009

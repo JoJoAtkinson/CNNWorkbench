@@ -46,6 +46,12 @@ dependency bootstrap path without requiring the trainer code to exist yet.
 - LibTorch bootstrap follows the project lock file instead of ad hoc version
   selection
 
+## Coverage
+
+- Implements: `REQ-004`, `REQ-007`, `REQ-008`
+- Constrains: `CON-004`, `CON-006`, `CON-008`
+- Verifies: `ACC-003`, `R1`, `R6`, `R8`, `R9`
+
 ## Done Criteria
 
 - `doctor` reports accelerated availability, CPU availability, resolved backend
@@ -82,3 +88,5 @@ dependency bootstrap path without requiring the trainer code to exist yet.
 
 - Stage 5 should be able to compile the trainer against the downloaded LibTorch
   artifacts without redefining environment detection or bootstrap ownership.
+
+Canonical IDs: REQ-004, REQ-007, REQ-008, CON-004, CON-006, CON-008

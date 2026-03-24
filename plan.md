@@ -10,6 +10,15 @@ Delivery sequencing lives in `plan-stages.md`. Detailed per-stage plans live
 under `plans/stages/`. This file stays focused on the full target design and
 contracts.
 
+Planning source of truth:
+
+- canonical atomic rules live in `plans/registers/`
+- durable rationale lives in `plans/decisions/`
+- verification and coverage links live in `plans/trace/`
+- this document remains the narrative architecture and contract explanation
+
+Canonical IDs: REQ-014, REQ-015, REQ-018, CON-005
+
 ## Core Decisions
 
 - Experiments are config-first, not per-experiment C++ subclasses.
@@ -65,6 +74,8 @@ contracts.
 - Unsupported platforms may still scaffold, resolve, compare, and prepare
   datasets, but `doctor` and `check` should make it explicit when local
   training is unavailable.
+
+Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-007, REQ-013, CON-001, CON-003, CON-004, CON-011, CON-012
 
 ## Repository Shape
 
@@ -180,6 +191,8 @@ Recommended `cpp/` layout:
   - reusable training-loop implementations
 - `cpp/main/`
   - binary entrypoint and explicit registration bootstrap
+
+Canonical IDs: REQ-003, REQ-008, REQ-013, CON-003, CON-005, CON-006, CON-008
 
 ## Shared Domain Model
 
@@ -2127,6 +2140,8 @@ CI expectations:
   tests must keep the Python-to-C++ interface stable across CPU and accelerated
   runtime selection
 
+Canonical IDs: REQ-008, CON-008, R3, R8, R9
+
 ## Reports And References
 
 Experiment-heavy repos benefit from a durable place for decision records and
@@ -2149,6 +2164,8 @@ Rules:
   not replace the canonical machine-readable data under `runs/`
 - comparison tooling may later gain an option to emit Markdown reports into
   `reports/` without changing the core artifact contract
+
+Canonical IDs: REQ-011, REQ-013, REQ-017, CON-005
 
 ## Testing Requirements
 
@@ -2199,6 +2216,8 @@ Minimum required coverage:
 - deployment-track-aware comparison behavior so accelerated-target, CPU-targeted,
   and FPGA-targeted runs are clearly labeled
 - compare behavior that distinguishes accelerated runs from CPU-fallback runs
+
+Canonical IDs: REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, CON-002, CON-003, CON-004, CON-007
 
 The purpose of these tests is to prevent documentation drift, hidden defaults,
 and orchestration regressions as the system grows.

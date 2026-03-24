@@ -49,6 +49,13 @@ implementation work.
 - the repo has one minimum CI entrypoint and one clear tracked-versus-local
   directory boundary
 
+## Coverage
+
+- Implements: `REQ-001`, `REQ-002`, `REQ-003`, `REQ-013`, `REQ-014`,
+  `REQ-015`, `REQ-016`, `REQ-017`, `REQ-018`
+- Constrains: `CON-005`, `CON-008`, `CON-009`
+- Verifies: `ACC-001`, `ACC-007`, `R1`, `R3`, `R5`, `R6`, `R7`, `R9`, `R10`
+
 ## Done Criteria
 
 - all planned CLI modules import cleanly
@@ -86,3 +93,5 @@ implementation work.
 
 - Stage 2 should be able to build scaffolding, validation, and resolution logic
   on the shared contracts without redefining schema or artifact ownership.
+
+Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, CON-005, CON-008, CON-009

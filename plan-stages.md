@@ -29,6 +29,11 @@ depending on unfinished later work.
   [plans/mock_implementation_learned.md](/Users/joe/GitHub/CNNWorkbench/plans/mock_implementation_learned.md).
 - Each stage should minimize cross-cutting edits. If a requirement can move to a
   later stage without weakening the current stage's acceptance gate, move it.
+- Planning updates now follow the canonical order:
+  register update, ADR update if rationale changed, trace update, then
+  narrative-doc update.
+
+Canonical IDs: REQ-014, REQ-015, REQ-016, CON-009
 
 ## Recommended Stage Order
 
@@ -41,6 +46,8 @@ depending on unfinished later work.
 7. Resume And Fine-Tune Extension
 8. Comparison And Matrix Workflows
 9. FPGA-Targeted Deployment Extension
+
+Canonical IDs: STAGE-01, STAGE-02, STAGE-03, STAGE-04, STAGE-05, STAGE-06, STAGE-07, STAGE-08, STAGE-09, REQ-016
 
 ## Stage 1: Foundation And Contract Skeleton
 
@@ -578,6 +585,11 @@ Do not start the next stage until the current stage has:
   capability
 - unresolved scope pushed forward explicitly instead of left ambiguous
 
+No stage should be treated as ready or complete while it depends on an open
+blocking `UNK-*` item.
+
+Canonical IDs: REQ-016, REQ-018, CON-009
+
 ## Suggested Future Split
 
 Detailed stage plans now live under `plans/stages/`:
@@ -596,3 +608,5 @@ Use those files for stage-specific implementation prompts and keep this document
 as the compact sequencing and acceptance overview. That keeps delivery planning
 separate from the runtime code layout while preserving the planning history in
 the repo.
+
+Canonical IDs: REQ-015, REQ-016
