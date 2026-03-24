@@ -20,7 +20,11 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 ## Scope
 
 - `build` command with CMake configuration and compilation
+- minimum supported CMake version `3.26`
+- canonical trainer target name `cnnwb_train`
+- supported build types `Debug`, `RelWithDebInfo`, and `Release`
 - environment-scoped build roots under `build/<platform_tag>/`
+- build fingerprinting under `build/<platform_tag>/build_fingerprint.json`
 - resolved-config parsing on the C++ side
 - registry bootstrap for required component families
 - phase 1 built-ins for the default general-purpose path
@@ -43,22 +47,37 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 - adding the second component to a registry family has a clear extension path
 - Phase 1 establishes one canonical trainer test path: Python-driven binary
   smoke and integration tests against tiny resolved-config fixtures
+- config-only experiment changes do not trigger unnecessary trainer rebuilds
 
 ## Done Criteria
 
 - `build` produces a working binary from the tracked C++ source tree
 - the minimal trainer writes the outputs it owns directly
 - missing registered components fail with clear diagnostics
+- rebuild decisions are fingerprint-based and include tracked C++, CMake,
+  toolchain, lock-file, and trainer-boundary schema inputs
 
 ## Test Gate
 
 - build tests verifying CMake configuration and binary production
+- tests verifying the CMake floor, canonical target name, and supported build
+  types
 - Python-driven trainer smoke tests that invoke the built binary against tiny
   resolved-config fixtures
 - registry lookup failure tests
 - tests for minimum metrics and checkpoint outputs
+- tests proving config-only experiment changes do not trigger a rebuild while
+  tracked C++, CMake, lock-file, or schema changes do
 - no separate C++ unit-test framework is required in Phase 1; if a lightweight
   C++ harness is added later, it is secondary to the trainer-boundary tests
+
+## Collaboration Risks
+
+- `R1`: Stage 5 keeps the build path repeatable across clean checkouts.
+- `R6`: Stage 5 keeps build ownership in the documented environment-scoped
+  roots rather than ad hoc local layouts.
+- `R8`: Stage 5 owns the C++ build floor, target identity, and fingerprint
+  contract that keep toolchain behavior stable.
 
 ## Handoff To Stage 6
 

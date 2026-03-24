@@ -17,11 +17,16 @@ shared preparation path.
 ## Scope
 
 - `configs/datasets.toml`
+- `configs/schemas/datasets_catalog.schema.json`
 - shared dataset metadata loader interface
 - `prepare_datasets`
 - idempotent `ensure_dataset()`
 - `numbers` and `fashion` dataset helpers
 - `<dataset_root>/metadata.json` creation and validation
+- top-level dataset catalog schema versioning
+- strict Phase 1 `metadata.json` shape with only `input_channels` and
+  `num_classes`
+- sentinel-based cache reuse rules when a dataset declares a sentinel
 - `resolve --ensure-datasets`
 
 ## Out Of Scope
@@ -36,6 +41,8 @@ shared preparation path.
 - `resolve` can read runtime dataset metadata instead of relying on fixtures
 - `run_local` and `resolve --ensure-datasets` can share the same preparation
   logic later
+- the catalog schema version and strict dataset metadata contract are explicit
+  instead of being inferred from tests alone
 
 ## Done Criteria
 
@@ -43,13 +50,26 @@ shared preparation path.
 - `prepare_datasets` is idempotent
 - plain `resolve` stays pure by default
 - missing metadata produces a clear failure with the right next step
+- cache reuse requires both valid metadata and the configured sentinel when one
+  is defined
 
 ## Test Gate
 
 - unit tests for catalog parsing and metadata validation
+- unit tests for `[schema].catalog_version` and the tracked schema reference
 - integration tests for idempotent dataset preparation on fixture roots
+- integration tests proving cache reuse requires both valid metadata and the
+  sentinel when one is configured
 - tests proving `resolve` fails cleanly when metadata is missing
+- tests proving Phase 1 rejects extra persisted metadata keys
 - tests proving `resolve --ensure-datasets` repairs the missing metadata path
+
+## Collaboration Risks
+
+- `R4`: Stage 3 keeps dataset schema and cache behavior explicit in the docs and
+  tests.
+- `R7`: Stage 3 defines which dataset artifacts are reusable local cache versus
+  tracked contract inputs.
 
 ## Handoff To Stage 4
 

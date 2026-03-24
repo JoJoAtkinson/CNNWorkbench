@@ -32,6 +32,14 @@ contracts.
 - Finished experiments and finished bases are immutable.
 - When a broad discovery should become common for future work, create a new base
   version instead of editing the old base.
+- The upstream repo is curated. Most experiment-only work should live in
+  branches or forks and be shared by link rather than merged upstream by
+  default.
+- Upstream pull requests should usually carry reusable framework changes, docs,
+  tests, new maintained bases, or explicitly requested promoted experiments.
+- Experiment ids are authoritative only within the repo that assigns them. When
+  a fork-owned experiment is promoted upstream, it may be renumbered to the
+  next upstream id in the same track before merge.
 - Python handles orchestration, batching, scaffolding, dataset preparation, and
   comparison.
 - C++ handles one resolved child training job at a time.
@@ -41,8 +49,8 @@ contracts.
 - Optional short runs validate at item milestones and stop early.
 - Python expands short-run schedule math into explicit milestone counts so the
   C++ trainer does not own Fibonacci or escalation logic.
-- Reproducibility uses tracked experiment folders plus git state capture, not
-  per-run source snapshots.
+- Reproducibility uses tracked experiment folders in the repo that owns them
+  plus git state capture, not per-run source snapshots.
 - Canonical full runs should come from a clean git tree by default. Dirty-tree
   full runs require an explicit override.
 - Phase 1 training supports `cpu` and `accelerated` runtime intent.
@@ -52,7 +60,7 @@ contracts.
   one-image-at-a-time experimentation intended to approximate FPGA-oriented
   training constraints.
 - If `train_runtime = "accelerated"` is requested and no accelerated backend is
-  available, short or explicit local debug runs may fall back to CPU with a
+  available, short local runs may fall back to CPU with a
   warning. Canonical full runs must fail unless CPU was explicitly requested.
 - Unsupported platforms may still scaffold, resolve, compare, and prepare
   datasets, but `doctor` and `check` should make it explicit when local
@@ -81,9 +89,13 @@ contracts.
     project Python via `uv`, running `uv sync`, and printing the next required
     `doctor` or `build` step for the detected environment
 - `experiments/`
-  - Git-tracked experiment definitions.
+  - Git-tracked experiment definitions for the current repo.
+  - the upstream repo keeps a curated subset of community work rather than
+    mirroring every fork
 - `configs/datasets.toml`
   - Shared dataset catalog keyed by logical dataset name.
+- `configs/libtorch.lock.toml`
+  - project-wide pinned LibTorch version plus expected archive checksums.
 - `configs/matrices/`
   - optional tracked sweep definitions for repeatable parameter matrices.
 - `datasets/`
@@ -93,7 +105,8 @@ contracts.
     compatibility references that inform shared implementation choices.
 - `reports/`
   - tracked or generated comparison summaries, experiment review notes, and
-    promotion recommendations for new base versions.
+    promotion recommendations for curated upstream experiments and new base
+    versions.
 - `third_party/`
   - Ignored local bootstrap dependencies such as
     `third_party/libtorch/<platform_tag>/`.
@@ -177,20 +190,38 @@ Required shared models:
 
 - `ExperimentConfig`
   - typed representation of one authored `experiment.toml`
+  - validates all 15 required sections: `experiment`, `metadata`, `runtime`,
+    `batch`, `model`, `optimizer`, `scheduler`, `loss`, `train`, `train_loop`,
+    `checkpoint`, `initialization`, `short_run`, `quantization`, `deployment`
+  - all fields are mandatory from Stage 1; no deferred fields
 - `DatasetSpec`
   - dataset catalog entry plus discovered runtime metadata
 - `ResolvedChildRun`
   - one fully resolved experiment plus one dataset plus one run profile
+  - validates `run_profile in {"full", "short"}` and
+    `execution_mode in {"preview", "local", "azure"}`
 - `BatchPlan`
   - ordered collection of `ResolvedChildRun` items for one launch
+  - validates at least one child is present
 - `EnvironmentReport`
   - detected environment facts and capability flags from `doctor`
+  - requires `platform_tag` and `environment_kind`
 - `LaunchVerdict`
   - reusable preflight and policy decision returned by `policies/`
+  - invariant: `allowed=true` cannot coexist with blocking errors
 - `RunManifest`
-  - typed metadata for one executed child run
+  - typed metadata for one executed child run, including source-repo
+    provenance and optional matrix fields (`matrix_name`,
+    `matrix_variant_id`, `matrix_overrides`)
+  - validates `train_runtime in {"cpu", "accelerated"}` and
+    `resolved_backend in {"cpu", "cuda", "mps"}`
 - `CompareInput`
   - normalized artifact-backed input shape used by the comparison layer
+  - validates `run_profile` and requires at least one dataset summary
+
+All domain models include a `validate()` method that runs structural checks at
+construction time. Models are fully defined in Stage 1 and exercised
+incrementally as later stages introduce their callers.
 
 Ownership rules:
 
@@ -240,6 +271,36 @@ install, and a project-owned build step:
   - reruns critical compatibility checks and fails with actionable remediation if
     the current environment cannot support the requested training runtime
 
+LibTorch lock and update policy:
+
+- the project uses one project-wide LibTorch lock file at
+  `configs/libtorch.lock.toml`; there is no per-experiment LibTorch pinning
+- the lock file records the exact LibTorch version and expected SHA256 checksum
+  per supported package variant
+- `build` and LibTorch bootstrap must verify downloaded archives against the
+  tracked checksum before extraction
+- `doctor` and `build` may warn when a newer LibTorch release exists, but they
+  must never auto-upgrade the pinned project version
+
+CMake and rebuild contract:
+
+- the minimum supported CMake version is `3.26`
+- the canonical trainer target name is `cnnwb_train`
+- Phase 1 must support at least `Debug`, `RelWithDebInfo`, and `Release`
+  build types
+- stale-binary detection uses
+  `build/<platform_tag>/build_fingerprint.json`
+- the build fingerprint must include:
+  - all `cpp/**` source files
+  - top-level `CMakeLists.txt` plus any tracked CMake configuration files
+  - `platform_tag`, compiler or toolchain identity, and selected build type
+  - `configs/libtorch.lock.toml`
+  - runtime artifact schema-version constants used by the trainer boundary
+- authored experiment config changes must not participate in the build
+  fingerprint; config-only changes do not trigger a rebuild
+- if the stored fingerprint differs from the current fingerprint, `build` must
+  reconfigure and rebuild automatically
+
 ## Supported Local Environments
 
 Phase 1 should document the supported runtime paths clearly:
@@ -259,7 +320,7 @@ Phase 1 should document the supported runtime paths clearly:
   - no Docker or Dev Container dependency for accelerated training
 - CPU training path
   - native host with a compatible Python, compiler, CMake, and LibTorch stack
-  - intended for explicit CPU runs and accelerated-fallback short/debug runs
+  - intended for explicit CPU runs and accelerated-fallback short runs
 - Authoring-only path
   - unsupported training hosts may still scaffold, resolve, compare, and prepare
     datasets
@@ -279,11 +340,48 @@ Phase 1 should document the supported runtime paths clearly:
 - whether the selected LibTorch package matches the environment
 - which concrete backend `train_runtime = "accelerated"` would resolve to in the
   current environment
-- whether an accelerated request would fall back to CPU for short/debug runs
+- whether an accelerated request would fall back to CPU for short runs
 - clear next actions when a requirement is missing or incompatible
+
+Environment classification precedence:
+
+1. `CNNWB_ENV_KIND` override takes highest precedence when set
+2. `DEVCONTAINER=1` → `dev_container`
+3. `CNNWB_CUDA_CONTAINER=1` → `cuda_container`
+4. Darwin + arm64/aarch64 + MPS available → `native_macos_mps`
+5. CPU available → `native_cpu`
+6. Otherwise → `authoring_only`
+
+When both Dev Container and CUDA container markers are set simultaneously, Dev
+Container wins because that is the interactive development use case and takes
+precedence for environment classification and reporting.
+
+Environment probes use `CNNWB_*` environment variables:
+
+- `CNNWB_SYSTEM`, `CNNWB_MACHINE` for platform identification
+- `CNNWB_ENV_KIND` for explicit override
+- `CNNWB_CUDA_AVAILABLE`, `CNNWB_MPS_AVAILABLE`, `CNNWB_CPU_AVAILABLE` for
+  capability flags
+- `CNNWB_CUDA_CONTAINER` for container detection
+- `DEVCONTAINER` for Dev Container detection
+
+`platform_tag` format: `{system}_{machine}_{environment_kind}` where system
+uses `macos` instead of `darwin` and machine maps `x86_64` to `x64` and
+`aarch64` to `arm64`.
+
+Run profiles:
+
+- Only `"short"` and `"full"` are valid run profiles
+- `"debug"` is not a formal run profile
+- CPU fallback for accelerated requests applies only when
+  `run_profile == "short"`
 
 Command gating after `doctor`:
 
+- the policy module defines two explicit command sets:
+  `AUTHORING_ONLY_ALLOWED = {"doctor", "new_experiment", "check", "resolve",
+  "compare", "prepare_datasets"}` and
+  `TRAINING_COMMANDS = {"build", "run_local", "run_matrix"}`
 - supported accelerated or CPU-capable states may run `uv sync`,
   `build`, `new_experiment`, `check`, `resolve`, `run_local`, `compare`, and
   `prepare_datasets`
@@ -328,7 +426,7 @@ Dev Container guidance:
 
 ## Experiment Hierarchy
 
-Each tracked experiment lives in its own folder:
+Each tracked experiment in a given repo lives in its own folder:
 
 - `experiments/<experiment_id>/experiment.toml`
 - `experiments/<experiment_id>/notes.md`
@@ -387,6 +485,25 @@ Rules:
 - Finished bases are immutable.
 - A new common pattern should become a new base version, not a patch to an old
   base.
+
+## Upstream Curation, Forks, And Promotion
+
+The upstream `experiments/` tree is curated project history, not a mirror of
+every community fork.
+
+Rules:
+
+- Most experiment-only work should happen in a branch or fork by default.
+- Community sharing should normally use links to the repo, commit, experiment
+  folder, and compare or report output in GitHub discussions, issues, or
+  Discord rather than an upstream pull request.
+- Upstream pull requests should normally merge reusable Python or C++ changes,
+  docs, tests, new maintained bases, or explicitly requested promoted
+  experiments.
+- GitHub pull requests compare one branch against upstream. Other experiment
+  branches may remain in the fork and do not have to be merged upstream.
+- Once an experiment is promoted into upstream, it becomes part of the curated
+  immutable experiment history and follows the normal immutability rules.
 
 ## Deployment Track Model
 
@@ -462,12 +579,28 @@ Required behavior:
 
 - validates the parent experiment exists
 - infers the track from the parent
-- chooses the next available experiment id in the same track
+- chooses the next available experiment id in the same track within the current
+  repo checkout
 - creates `experiments/<id>/`
 - writes `experiment.toml`
 - writes commented starter override blocks for common edits such as `train`,
   `model.stage*`, and `short_run`
 - writes `notes.md` from a template
+
+Experiment id allocation rules:
+
+- the track band is `(parent_prefix // 100) * 100`
+- for `--kind base`: candidate starts at the next multiple of 10 after the
+  current maximum in the band (`((current_max // 10) + 1) * 10`)
+- for `--kind experiment`: candidate is `current_max + 1`
+- the candidate increments until an unused prefix is found
+- gaps in the numbering are consumed by the next scaffold operation in that
+  repo
+- ids are repo-local and are not globally coordinated across forks
+- when a fork-owned experiment is promoted upstream, upstream assigns the next
+  available id in that track before merge
+- promotion-time renumbering changes the upstream id, not the experiment's
+  authored meaning or notes intent
 
 Recommended notes template sections:
 
@@ -929,16 +1062,31 @@ Preview-resolution rules:
   `resolve --ensure-datasets`
 - `resolve --ensure-datasets` may invoke the same idempotent dataset-prepare
   path used by `run_local` when dataset metadata is missing
+- `resolve --ensure-datasets` is all-or-nothing: any dataset preparation failure
+  raises an exception and aborts the entire resolution
 - preview resolution should surface resolved initialization state clearly so a
   user can verify whether the run starts from scratch, resumes a checkpoint, or
   fine-tunes from pretrained weights before launching the trainer
 - preview resolution should surface the requested training runtime, resolved
   backend, and whether a CPU fallback would occur before launch
+- preview runtime metadata uses deterministic placeholders before environment
+  detection is available: `resolved_backend = "cuda"` and
+  `fallback_applied = false` for `accelerated`, `resolved_backend = "cpu"` and
+  `fallback_applied = false` for `cpu`
 - when `--run-profile short` is requested, preview output must include the
   fully expanded `short_run.eval_items`
 - `resolve --diff-from-parent` should show the authored override delta alongside
   the fully resolved child configs so users can review both the minimal source
   change and the effective runtime contract
+
+Diff-from-parent output contract:
+
+- `parent`: parent experiment id
+- `child`: child experiment id
+- `authored_delta`: flat dict of child's authored keys using dotted-key notation
+- `runtime_effect`: dict of `{dotted_key: {parent: value, resolved: value}}`
+  for each key whose resolved value differs from the parent's resolved value
+- `resolved_children`: list of fully rendered child configs
 
 ## Run Metadata And Tags
 
@@ -960,6 +1108,8 @@ Rules:
 - tags should be lightweight labels, not long freeform notes
 - tags are inherited like other config fields, but child experiments may replace
   the full tag list to keep intent explicit
+- shared or promoted experiments should set `metadata.owner` to a stable GitHub
+  handle or organization label
 - `notes.md` remains the place for hypothesis, narrative reasoning, and outcome
   analysis
 - `compare` should be able to display experiment tags and optionally filter on
@@ -978,6 +1128,12 @@ Author-facing config uses:
   - `scratch`, `resume`, or `finetune`
 - `initialization.checkpoint_source`
   - path to a checkpoint artifact or a symbolic run reference resolved by Python
+  - symbolic format: `latest:<experiment_id>[:<dataset_name>[:best|last]]`
+  - default dataset: current child's dataset name when omitted
+  - default checkpoint: `best` when omitted
+  - resolution walks `runs/<experiment_id>/`, selects latest batch dir (sorted),
+    finds child dir matching `_<dataset>`, returns
+    `checkpoints/<checkpoint_name>.pt`
 - `initialization.load_optimizer_state`
   - usually `true` for `resume`, usually `false` for `finetune`
 - `initialization.load_scheduler_state`
@@ -991,13 +1147,27 @@ Semantics:
 - `resume` continues the same training job semantics from an earlier checkpoint,
   including optimizer and scheduler state when available
 - `finetune` loads model weights from a checkpoint but starts a new training job
-  with new run identity and fresh optimizer or scheduler state unless explicitly
-  overridden
+  with new run identity and fresh optimizer or scheduler state
+- `finetune` always uses fresh optimizer and scheduler state regardless of the
+  `load_optimizer_state` and `load_scheduler_state` flags: the initialization
+  mode takes precedence over the load flags and conflicting values are silently
+  normalized
+- `resume` respects both `load_optimizer_state` and `load_scheduler_state` flags
 - Python resolves symbolic checkpoint references into a concrete checkpoint path
   before invoking the trainer
 - the resolved child config is the only initialization contract passed to the
   C++ trainer; Python should not pass a second ad hoc checkpoint flag that can
   drift from the resolved config
+
+Checkpoint compatibility criteria:
+
+- `model_state` key must exist in the checkpoint
+- when `strict_model_load = true`: `model_backbone` in the checkpoint must
+  match `model.backbone` in the resolved config
+- when `mode = "resume"` and `load_optimizer_state = true`: `optimizer_state`
+  key must exist in the checkpoint
+- when `mode = "resume"` and `load_scheduler_state = true`: `scheduler_state`
+  key must exist in the checkpoint
 
 Validation rules:
 
@@ -1008,6 +1178,23 @@ Validation rules:
   `initialization.strict_model_load = false`
 - a resumed run creates a new child run folder with its own manifest and must
   record the source checkpoint it resumed from
+
+Provenance recording:
+
+- run artifacts store only the resolved absolute checkpoint path, not the
+  original symbolic reference
+- after resolution, `initialization.checkpoint_source` in the resolved config
+  and manifest contains the concrete filesystem path
+
+Multi-dataset resume behavior:
+
+- checkpoint resolution happens per-child in the execution loop
+- if one child's checkpoint resolution fails, that child gets `status="failed"`
+  with a `checkpoint_validation_failed` error
+- the batch continues or stops per `stop_on_failure`
+- each dataset's checkpoint is resolved independently
+
+Trainer responsibilities:
 
 Trainer responsibilities:
 
@@ -1022,6 +1209,15 @@ Trainer responsibilities:
 
 The shared dataset catalog lives in `configs/datasets.toml` and defines the
 logical datasets available to experiments.
+
+Catalog schema contract:
+
+- `configs/datasets.toml` includes a top-level `[schema]` table with
+  `catalog_version = "1.0.0"`
+- the authoritative tracked schema reference for the catalog lives at
+  `configs/schemas/datasets_catalog.schema.json`
+- changing required fields or field meanings in `configs/datasets.toml`
+  requires a catalog-version bump and schema update
 
 Implementation location rule:
 
@@ -1046,11 +1242,15 @@ config, rather than hardcoded in `configs/datasets.toml`.
 Phase 1 persistence contract:
 
 - each dataset prepare step writes `<dataset_root>/metadata.json`
-- `metadata.json` must contain at least `input_channels` and `num_classes`
+- `metadata.json` must contain exactly `input_channels` and `num_classes` in
+  Phase 1
 - the resolver reads `metadata.json` and copies those values into
   `resolved_config.toml`
 - if preparation succeeds but `metadata.json` is missing or invalid, resolution
   fails
+- additional dataset metadata keys are not part of the Phase 1 contract; adding
+  any new keys requires an explicit plan update and, if persisted, a catalog
+  schema-version bump
 
 Expected Phase 1 entries:
 
@@ -1076,6 +1276,21 @@ Dataset preparation behavior:
   download side effects
 - local and Azure follow the same dataset preparation contract
 
+Sentinel and repair semantics:
+
+- `ensure_dataset()` uses both `metadata.json` validity and sentinel presence as
+  the cache gate: both must be present and valid to skip preparation
+- if either `metadata.json` is missing/invalid or the sentinel is missing, the
+  prepare function is re-invoked regardless of existing data files (repair in
+  place)
+- if `metadata.json` is invalid and data files exist, the prepare function
+  re-runs idempotently—this is repair, not hard failure
+- `resolve --ensure-datasets` uses all-or-nothing semantics: any single dataset
+  preparation failure aborts the entire resolution
+- `run_local` uses per-child semantics: a dataset preparation failure marks that
+  child run as failed with `dataset_prepare_failed` and the batch continues or
+  stops per `stop_on_failure`
+
 ## Trainer Contract
 
 The C++ trainer remains narrow:
@@ -1088,12 +1303,26 @@ The trainer reads only the resolved child config plus the output directory. It
 does not reapply experiment inheritance, guess datasets, or maintain a
 competing set of behavior defaults.
 
+Input strictness rule:
+
+- the trainer should ignore unknown keys and sections in the resolved config
+- it reads only the specific config paths it needs via section/key lookup
+- unknown fields pass through silently, providing forward compatibility so
+  Python-side config additions do not require trainer changes
+
 Runtime rule:
 
 - the trainer should treat `runtime.train_runtime` as the requested training
   intent and `runtime.resolved_backend` as the concrete backend it should use
 - it should not interpret a second user-authored device selector from somewhere
   else in the config
+
+Exit-code semantics:
+
+- `0` = success, training completed and artifacts written
+- `2` = validation or configuration error (unknown registered component, shape
+  error, initialization error)
+- Python treats any non-zero exit code as `status = "failed"`
 
 Output responsibilities:
 
@@ -1102,6 +1331,17 @@ Output responsibilities:
   into the child run's `train.log` while still streaming to the console
 - Python writes `summary.json` after process exit using trainer exit state plus
   produced artifacts
+
+Checkpoint file schema:
+
+- checkpoint files (`.pt`) use PyTorch serialization in the real implementation
+  but must contain these top-level keys:
+  - `model_state` (required)
+  - `optimizer_state` (required for resume with `load_optimizer_state`)
+  - `scheduler_state` (required for resume with `load_scheduler_state`)
+  - `model_backbone` (used for strict model load validation)
+- `validate_checkpoint_for_mode()` checks these keys to determine compatibility
+  before the trainer loads the checkpoint
 
 ### Registry And Factory Pattern
 
@@ -1207,6 +1447,29 @@ The FPGA track may add shared components such as:
 
 These are still shared reusable components, not per-experiment forks.
 
+FPGA component reuse rules:
+
+- non-FPGA deploy targets may use FPGA-friendly components
+  (`shift_activation`, `barrel_shift_norm`) without validation warnings
+- these components are registered globally in the trainer registry
+- constraint enforcement only fires for FPGA-profile experiments; other tracks
+  are unconstrained about which registered components they select
+
+Future FPGA profile model:
+
+- Phase 1 FPGA profiles are independent named profiles
+- Phase 1 does not introduce profile inheritance or profile composition
+- if future FPGA profiles duplicate substantial constraint logic, a later plan
+  revision may introduce shared profile composition explicitly
+
+FPGA fallback policy:
+
+- FPGA-targeted experiments with `train_runtime = "accelerated"` follow the
+  same CPU fallback policy as all other tracks
+- short runs may fall back to CPU when no CUDA/MPS backend is available
+- full runs must fail unless CPU was explicitly requested
+- no FPGA-specific fallback override exists
+
 FPGA-specific optimizer policy:
 
 - the front-facing learning and experimentation path should continue to use
@@ -1254,10 +1517,14 @@ the tracked-experiment model.
 Design intent:
 
 - tracked experiment folders remain the canonical place for durable hypotheses,
-  notes, and promoted results
+  notes, and promoted results within a repo
 - matrix or sweep runs are primarily for exploratory work and systematic search
 - when a sweep result matters, the winning configuration should be promoted into
   a normal tracked experiment or a new base version
+- fork-local sweeps and matrix definitions are normal and do not need to be
+  merged upstream by default
+- upstream should track only curated matrix definitions needed for maintained
+  evaluation sets or promotion reproduction
 
 Recommended tracked input:
 
@@ -1286,6 +1553,25 @@ Required behavior:
 - matrix expansion should reject ambiguous override collisions and duplicate
   generated variant ids
 
+Matrix definition schema:
+
+- `name`: optional matrix name; defaults to file stem
+- `axes`: dict of `key → [values]` for cartesian product expansion; each axis
+  must be a non-empty list
+- `variants`: explicit list of `{overrides: {...}}` tables for manual
+  combinations
+- both `axes` and `variants` may coexist: axes-expanded variants come first,
+  then explicit variants are appended
+- duplicate override sets are rejected
+- at least one variant must result from the expansion
+
+Matrix variant-id algorithm:
+
+- canonical JSON: `json.dumps(overrides, sort_keys=True, separators=(",", ":"))`
+- SHA1 hash of canonical JSON, first 10 hex characters
+- variant id format: `{base_experiment}__mx_{sha1_hex[:10]}`
+- duplicate hash collisions are detected and rejected
+
 Promotion rule:
 
 - a matrix result does not become the new long-term source of truth by itself
@@ -1308,6 +1594,8 @@ Promotion rule:
 - local execution resolves one experiment into a parent batch
 - that batch expands into ordered child dataset jobs such as `01_numbers` and
   `02_fashion`
+- `batch_id` uses UTC timestamp format `%Y%m%d%H%M%S`
+- batch folder name is `{batch_id}_local_{run_profile}`
 - local execution always runs child jobs one at a time
 - local concurrency defaults to `1`
 - operator commands require an explicit experiment id
@@ -1315,26 +1603,37 @@ Promotion rule:
   run-profile, dataset, and git-policy validation
 - `run_local` should invoke the same validation automatically before launching a
   batch
+- `run_local` auto-triggers `ensure_libtorch()` and `build_trainer_binary()`
+  before launching training; users do not need to run `build` separately first
 - if `train_runtime = "accelerated"` is requested and no accelerated backend is
-  available, short or explicit local debug runs may fall back to CPU with a
+  available, short local runs may fall back to CPU with a
   warning; canonical full runs must fail instead
 - before each child dataset run starts, Python calls `ensure_dataset()`
 
-### Git Cleanliness Policy
+### Git And Source Provenance Policy
 
 Short exploratory runs:
 
 - may run from a dirty tree
-- must still capture git dirty state and patch files
+- must still capture git dirty state, source repo url when available, and patch
+  files
 
 Canonical full runs:
 
 - should require a clean git tree by default
 - may support `--allow-dirty` for exceptional cases
-- must always record `git_commit`, `git_dirty`, and saved patch files
+- must always record `git_commit`, `source_repo_url` when available,
+  `git_dirty`, and saved patch files
+
+Non-git behavior:
+
+- when `.git` does not exist, git info returns `commit = "nogit"`,
+  `source_repo_url = ""`, `dirty = false`, `working_patch = ""`,
+  `staged_patch = ""`
+- the run proceeds normally with these sentinel values; no warning or failure
 
 This is the primary mechanism that keeps experiments and framework changes from
-being lost.
+being lost while still making fork-shared work traceable.
 
 ### Failure Policy
 
@@ -1360,6 +1659,24 @@ When `stop_on_failure = false`:
 - `batch_summary.json.status` remains `failed` when every launched child fails
 - `batch_summary.json.status` remains `succeeded` when every launched child
   succeeds
+
+Batch status algebra:
+
+- all children `succeeded` → `"succeeded"`
+- all launched children `failed` → `"failed"`
+- mixed `succeeded` and `failed` → `"partial"`
+- all children `not_started` (preflight-only) → `"failed"`
+- the return value uses `ok = batch_status in {"succeeded", "partial"}`
+
+Pre-trainer failure artifacts:
+
+- when a child run fails before the trainer launches (dataset prepare failure,
+  policy rejection, checkpoint validation failure), Python still writes
+  `run_manifest.json` and `summary.json` with `status = "failed"` and the
+  `resolved_config.toml`
+- `experiment_source.toml` is written before any failure path when the source
+  file exists
+- `train.log` is only produced when the trainer subprocess actually runs
 
 ### Azure
 
@@ -1401,6 +1718,18 @@ Artifact ownership rules:
 - every persisted artifact should include a schema version so contract changes
   can be detected explicitly rather than inferred from missing keys
 
+Artifact schema compatibility policy:
+
+- semantic-version compatibility applies to persisted runtime artifacts only;
+  authored `experiment.toml` files stay on the current supported schema and do
+  not carry a backward-compatibility promise
+- additive optional fields may increment the minor version within the same major
+- removing, renaming, or changing the meaning or type of a required field must
+  increment the major version
+- readers must accept older minor versions within the same major when the
+  required fields they consume are still present
+- readers may reject unknown major versions explicitly with an actionable error
+
 Minimum Phase 1 versioned artifacts:
 
 - `resolved_config.toml`
@@ -1425,6 +1754,7 @@ Minimum Phase 1 versioned artifacts:
 - `resolved_backend`
 - `fallback_applied`
 - `deploy_target`
+- `source_repo_url`
 - `git_commit`
 - `git_dirty`
 - `git_patch_paths`
@@ -1470,6 +1800,7 @@ folder, such as `git_diff_working.patch` and `git_diff_staged.patch`.
 - `resolved_backend`
 - `fallback_applied`
 - `deploy_target`
+- `source_repo_url`
 - `initialization_mode`
 - `checkpoint_source`
 
@@ -1495,6 +1826,57 @@ Selection rules:
 - compare does not silently mix `short` and `full`
 - compare should surface deployment-track metadata so accelerated-target,
   CPU-targeted, and FPGA-targeted runs are not misread as equivalent targets
+
+Latest completed batch selection:
+
+- list batch directories matching `_local_{run_profile}` suffix under
+  `runs/<experiment_id>/`
+- reverse-sort by directory name (timestamp-based ordering)
+- select the first batch whose `batch_summary.json` has
+  `status in {"succeeded", "partial"}`
+- if no qualifying batch exists, compare errors clearly
+
+Compare output schema:
+
+- versioned via `versioned_compare_report()`
+- top-level fields: `run_profile`, `experiments` (list of ids), `rows`
+- each row: `dataset`, `experiments.{id}` containing:
+  - `status` (`"succeeded"`, `"failed"`, or `"missing"`)
+  - `best_val_accuracy`, `best_val_loss`, `duration_seconds`
+  - `tags`, `initialization_mode`
+  - `train_runtime`, `resolved_backend`, `fallback_applied`
+  - `deploy_target`, `matrix_variant_id`
+  - `smoke_validation` (deployment smoke results)
+- datasets present in some experiments but not others get
+  `{"status": "missing"}` rather than being silently dropped
+
+Deployment smoke-validation criteria:
+
+- `export_ok`: checkpoint file (`best.pt`) exists
+- `load_ok`: checkpoint file is parseable
+- `inference_ok`: `metrics.csv` exists
+- `target_compatible`: for FPGA targets, validates `quantization.mode`,
+  `weight_bits`, `activation_bits`, `fake_quant`, `export_profile`,
+  `model.activation`, and `model.norm` match the `fpga_int8_v1` profile; for
+  non-FPGA targets, always `true`
+- `passed`: all four criteria must be `true`
+
+FPGA hardware gate:
+
+- shared smoke validation is always the Phase 1 baseline
+- promotion-grade FPGA decisions require an additional hardware gate
+- the hardware gate must check:
+  - export operator whitelist compatibility
+  - quantization or calibration validity for the target flow
+  - latency budget compliance on the target hardware path
+  - resource or utilization budget compliance when hardware reports it
+
+Cross-track comparison:
+
+- compare allows mixed deploy targets in the same comparison
+- each experiment row includes `deploy_target` so downstream consumers can make
+  informed ranking decisions
+- no warnings or blocks are issued for cross-track comparisons
 
 Recommended future filter support:
 
@@ -1544,6 +1926,7 @@ The resolver, scaffolder, and launcher should fail fast on:
   expose a usable CUDA or MPS backend and CPU fallback is not allowed for the
   requested run type
 - full runs launched from a dirty tree without an explicit dirty override
+- unsupported legacy authored syntax under the current engine contract
 
 The trainer should fail fast on:
 
@@ -1563,7 +1946,7 @@ Failure handling rules:
 - `doctor` failures should identify the failed requirement, the detected
   environment, and the next concrete remediation step
 - fallback warnings should appear only when accelerated training was requested
-  and a short/debug local run resolves to CPU
+  and a short local run resolves to CPU
 - `build` failures should preserve the compatibility context that led to the
   failure instead of surfacing only a low-level tool error
 - `check` failures should enumerate every blocking experiment issue in one pass
@@ -1575,6 +1958,29 @@ Failure handling rules:
 - with `stop_on_failure = true`, remaining local child runs become `not_started`
 - with `stop_on_failure = false`, remaining local child runs stay eligible to
   run
+
+Structured JSON error schema:
+
+- commands that support JSON output emit a top-level `errors` array
+- each error object uses these fields:
+  - `code`: stable machine-readable error identifier
+  - `path`: dotted config path, artifact path, or empty string when not
+    path-specific
+  - `severity`: `error` or `warning`
+  - `message`: human-readable failure description
+  - `hint`: optional remediation guidance for common, known fixes
+- human-readable CLI output may present the same failures in prose, but JSON
+  mode must preserve the structured fields above
+
+Unsupported old authored syntax policy:
+
+- old tracked experiments are immutable and should not be rewritten in place
+- if a historical authored config uses syntax that the current engine no longer
+  supports, the current engine should hard-fail with an actionable error
+- exact historical replay should use the matching repo revision and dependency
+  lock for that historical run
+- reruns under the current engine should be created as a new tracked experiment
+  and retrained from scratch rather than mutating the historical experiment
 
 ## Orchestration Boundaries
 
@@ -1636,6 +2042,9 @@ Implementation constraints:
 
 ## CLI Surface
 
+Phase 1 Python entrypoints use `python -m` module invocations, not console
+scripts. No console script packaging is required.
+
 Phase 1 Python entrypoints should be:
 
 - `cnn_workbench.cli.doctor`
@@ -1669,7 +2078,7 @@ Phase 1 Python entrypoints should be:
   - resolves the experiment, prepares datasets as needed, launches the batch
   locally, and writes run artifacts
   - may fall back from requested accelerated training to CPU only for
-    short/debug local runs, and must record that fallback in runtime artifacts
+    short local runs, and must record that fallback in runtime artifacts
 - `cnn_workbench.cli.run_matrix --experiment <id> --matrix <path> [--run-profile full|short] [--allow-dirty]`
   - expands a tracked matrix definition into multiple concrete run variants
   - resolves each variant through the same Python path used by `run_local`
@@ -1707,6 +2116,8 @@ Rules:
 
 CI expectations:
 
+- the minimum tracked CI surface is at least one workflow file under
+  `.github/workflows/` that runs the canonical command `make test`
 - CI should run Python linting or formatting checks once those tools are chosen
 - CI should run orchestration tests that do not require a GPU
 - CI should validate example experiment configs and dataset catalog schema
@@ -1765,7 +2176,7 @@ Minimum required coverage:
 - track inheritance and non-base track override rejection
 - runtime source-of-truth enforcement so `runtime.train_runtime` is not
   shadowed by a second device selector
-- scaffolder behavior and notes template creation
+- scaffolder behavior, repo-local id allocation, and notes template creation
 - scaffolder commented override snippets for common edits including `short_run`
 - base-version creation workflow
 - metadata tag propagation into resolved configs and run artifacts
@@ -1780,6 +2191,7 @@ Minimum required coverage:
 - local stop-on-failure behavior and `not_started` marking
 - dirty-tree recording for short runs
 - clean-tree enforcement for canonical full runs
+- source repo url recording in runtime artifacts when available
 - artifact layout and required manifest files
 - metrics and summary schema production
 - dataset-aware comparison behavior

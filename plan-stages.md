@@ -19,6 +19,14 @@ depending on unfinished later work.
   - explicit done criteria
   - automated tests for that stage's contracts
   - updated docs for any new command or contract
+- Each relevant stage plan must cite the applicable `R#` items from
+  [plans/collaboration-risk-matrix.md](/Users/joe/GitHub/CNNWorkbench/plans/collaboration-risk-matrix.md)
+  and keep those risks enforced through `Done Criteria`, `Test Gate`, or a
+  dedicated collaboration section.
+- Stage plans may summarize top-level contracts, but they must not contradict
+  already-settled decisions in
+  [plan.md](/Users/joe/GitHub/CNNWorkbench/plan.md) or
+  [plans/mock_implementation_learned.md](/Users/joe/GitHub/CNNWorkbench/plans/mock_implementation_learned.md).
 - Each stage should minimize cross-cutting edits. If a requirement can move to a
   later stage without weakening the current stage's acceptance gate, move it.
 
@@ -60,17 +68,14 @@ In scope:
 - artifact schema version constants and serializer helpers
 - tracked seed content for `000_template`, `100_accelerated_base_v1`,
   `200_fpga_base_v1`, and `300_cpu_base_v1`
-- baseline `Makefile` targets and CI placeholder wiring
+- baseline `Makefile` targets and the minimum CI surface
+- baseline `.gitignore` coverage for local runtime directories such as
+  `datasets/`, `runs/`, `build/`, and `third_party/`
 
-Provisional model guidance:
+Model guidance:
 
-- `ExperimentConfig` and `ResolvedChildRun` will be exercised immediately in
-  Stage 2. Their shape should be treated as stable from Stage 1 onward.
-- `EnvironmentReport`, `LaunchVerdict`, `RunManifest`, `BatchPlan`, and
-  `CompareInput` are not consumed by real logic until Stages 4 through 8.
-  Define the type stubs and validation here, but treat their field sets as
-  provisional until the consumer stage validates the shape. Expect revision
-  when each consumer stage starts.
+- all shared domain models are fully defined from Stage 1; later stages exercise
+  those contracts incrementally but do not treat the field sets as provisional
 
 Out of scope:
 
@@ -87,12 +92,16 @@ Done when:
 - contract objects and artifact helpers exist in one place instead of ad hoc
   dicts
 - seed experiments and config roots are present in tracked files
+- the repo exposes at least one workflow under `.github/workflows/` that runs
+  `make test`
 
 Independent test gate:
 
 - import smoke tests for every planned CLI module
 - unit tests for domain model validation and artifact version field injection
 - repository layout tests asserting the tracked seed files exist
+- repository checks asserting the documented local runtime directories are
+  ignored by git
 
 ## Stage 2: Experiment Authoring And Resolution
 
@@ -140,7 +149,8 @@ Out of scope:
 
 Done when:
 
-- a new experiment can be scaffolded from a parent and checked into git
+- a new experiment can be scaffolded from a parent in the current repo or fork
+  and checked into git
 - `check` reports all blocking config issues in one pass
 - `resolve` emits one fully materialized child config per dataset target
 - short and full preview resolution behave differently where required
@@ -148,8 +158,8 @@ Done when:
 
 Independent test gate:
 
-- scaffolder tests for experiment id allocation, notes template creation, and
-  commented override snippets
+- scaffolder tests for repo-local experiment id allocation, notes template
+  creation, and commented override snippets
 - resolution tests for inheritance, merge rules, and deployment-track
   restrictions
 - resolution tests for `train_runtime` versus `deploy_target` separation
@@ -181,6 +191,9 @@ In scope:
 - idempotent `ensure_dataset()`
 - `numbers` and `fashion` dataset helpers
 - `<dataset_root>/metadata.json` creation and validation
+- dataset catalog schema versioning under `configs/datasets.toml`
+- tracked schema reference at `configs/schemas/datasets_catalog.schema.json`
+- strict Phase 1 dataset metadata shape and sentinel-based cache reuse rules
 - `resolve --ensure-datasets`
 
 Out of scope:
@@ -197,6 +210,8 @@ Done when:
   breaking existing outputs
 - plain `resolve` remains pure and `resolve --ensure-datasets` opts into
   mutation
+- the catalog schema version and strict `metadata.json` contract are documented
+  and enforced consistently
 
 Independent test gate:
 
@@ -204,6 +219,8 @@ Independent test gate:
 - integration tests for idempotent dataset preparation on fixture roots
 - tests proving `resolve` fails cleanly when metadata is missing
 - tests proving `resolve --ensure-datasets` repairs the missing metadata path
+- tests proving cache reuse requires both valid metadata and the configured
+  sentinel when one is defined
 
 ## Stage 4: Environment Detection And LibTorch Download
 
@@ -238,9 +255,10 @@ In scope:
 - environment classification for CUDA container, Dev Container, native macOS
   MPS, CPU-capable native host, compatible native host, and authoring-only host
 - LibTorch download/bootstrap into `third_party/libtorch/<platform_tag>/`
+- project-wide LibTorch lockfile and checksum verification
 - platform-tag selection and cache reuse logic
 - canonical Docker and Dev Container definitions
-- accelerated-to-CPU fallback policy evaluation for short/debug local runs
+- accelerated-to-CPU fallback policy evaluation for short local runs
 
 Out of scope:
 
@@ -255,9 +273,10 @@ Done when:
 - `doctor` reports the detected environment, capabilities, blockers, and next
   actions
 - `doctor` reports accelerated availability, CPU availability, resolved backend
-  selection, and whether a short/debug accelerated request would fall back to
-  CPU
+  selection, and whether a short accelerated request would fall back to CPU
 - LibTorch download succeeds for the detected platform and is cached for reuse
+- the selected LibTorch package comes from the tracked lock file and is
+  checksum-verified before extraction
 - unsupported environments are refused with actionable diagnostics before any
   download attempt
 - Docker and Dev Container definitions point at the same CUDA-path image or
@@ -268,6 +287,7 @@ Independent test gate:
 - unit tests for environment classification and policy verdict generation
 - tests for supported versus authoring-only versus blocked command gating
 - bootstrap tests for platform-tag selection and cache reuse behavior
+- lockfile parsing and checksum verification tests
 - fallback-policy tests for accelerated requests on CUDA, MPS, and CPU-only
   hosts
 - regression tests that pin the launch-policy surface from Stage 2 so
@@ -368,7 +388,7 @@ In scope:
 - parent batch expansion into ordered child dataset runs
 - sequential local execution
 - `run_manifest.json`, `summary.json`, and batch summary generation
-- git commit, dirty-state, and patch capture
+- git commit, source repo url, dirty-state, and patch capture
 - stop-on-failure behavior
 - recording of requested training runtime, resolved backend, deploy target, and
   fallback state in runtime artifacts
@@ -386,6 +406,7 @@ Done when:
 - `run_local --experiment <id>` executes a full parent batch end to end for
   scratch-mode experiments
 - successful and failed child runs both produce the required artifact set
+- runtime artifacts preserve source-repo provenance when available
 - dirty-tree rules differ correctly between short and full runs
 - stop-on-failure and not-started marking match the plan contract
 
@@ -394,7 +415,8 @@ Independent test gate:
 - integration tests for successful local batch execution on tiny datasets
 - failure-path tests for trainer crash, dataset prepare failure, and dirty-tree
   policy rejection
-- artifact schema assertions for manifest, summary, and batch summary files
+- artifact schema assertions for manifest, summary, and batch summary files,
+  including source-repo provenance
 - assertions that CPU-fallback short runs are distinguishable from true
   accelerated runs
 - regression tests that pin the git-policy surface from Stages 2 and 4 so
@@ -465,7 +487,8 @@ Goal:
 
 - Add the experiment-analysis loop: systematic sweeps and artifact-backed
   comparisons, plus one shared deployment-validation harness for CPU,
-  accelerated, and FPGA targets.
+  accelerated, and FPGA targets, without assuming every exploratory result
+  becomes upstream history.
 
 In scope:
 
@@ -476,7 +499,7 @@ In scope:
 - dataset-aware, profile-aware, and deployment-track-aware comparison rules
 - shared deployment smoke validation: export, load, tiny-sample inference, and
   target-compatibility checks
-- optional report emission into `reports/`
+- optional report emission into `reports/` for sharing and promotion decisions
 
 Out of scope:
 
@@ -488,8 +511,8 @@ Done when:
   collisions
 - compare can summarize the latest completed runs without silently mixing
   datasets, profiles, or tracks
-- comparison output is strong enough to support promotion decisions for new base
-  versions
+- comparison output is strong enough to support promotion decisions for curated
+  upstream experiments and new base versions
 
 Independent test gate:
 

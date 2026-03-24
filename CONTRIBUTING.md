@@ -8,6 +8,9 @@ project. The intended contribution model is:
 - C++ owns one resolved training job at a time
 - deployment-targeted math changes live in shared code, not in experiment
   folders
+- most experiment-only work lives in branches or forks by default
+- upstream merges reusable code, docs, tests, maintained bases, and selected
+  promoted experiments rather than every community experiment
 
 This file explains how to contribute against that design and doubles as a
 checksum for whether the project structure is actually contributor-friendly.
@@ -39,19 +42,23 @@ That means:
 - Keep Python orchestration modular and keep the C++ trainer narrow.
 - Make failures actionable. A contributor should get a clear next step instead
   of a low-context tool error.
+- Do not design the contribution flow around maintainers reviewing every
+  community experiment.
 
 ## Choose The Right Contribution Surface
 
 Use the narrowest layer that fits the change.
 
 - Change only experiment behavior under test:
-  edit `experiment.toml` in a tracked experiment folder
+  edit `experiment.toml` in a branch or fork-local experiment folder
 - Add or modify reusable orchestration behavior:
   change Python under `src/cnn_workbench/`
 - Add or modify reusable model/math behavior:
   change C++ under `cpp/`
 - Add a new deployment-target default or durable experiment family:
   create a new base version instead of editing a finished base
+- Add a curated upstream example or baseline after discussion:
+  promote a finished experiment into upstream
 - Update contributor expectations, workflow, or architecture wording:
   update docs first
 
@@ -97,6 +104,26 @@ Boundary routing examples:
 - metrics that summarize finished artifacts across runs:
   Python compare/reporting code
 
+## Upstream Curation And Fork Sharing
+
+The upstream `experiments/` tree is curated project history, not a mirror of
+every community fork.
+
+Working rules:
+
+- Do experiment-only work in your branch or fork by default.
+- Share experiment work by linking the repo, commit, experiment folder, and
+  compare or report output in Discord, GitHub Discussions, or issues.
+- Open upstream pull requests mainly for reusable Python or C++ changes, docs,
+  tests, new maintained bases, or explicitly requested promoted experiments.
+- `new_experiment` allocates ids in the repo you are currently using. Fork-local
+  ids are local and may be renumbered if an experiment is later promoted
+  upstream.
+- Use `metadata.owner` as a stable GitHub handle or organization label for
+  experiments intended to be shared outside a private workspace.
+- GitHub pull requests compare one branch against upstream. Other experiment
+  branches can stay in your fork and do not have to be merged upstream.
+
 ## Intended Setup Flow
 
 Once implementation lands, contributors should be able to bootstrap with one
@@ -137,13 +164,17 @@ progress without a full training-capable environment.
 
 For most feature or experiment work:
 
-1. Start from the correct base.
+1. Start from the correct base in your current repo or fork.
 2. Make the smallest config or shared-code change that expresses the idea.
 3. Run `check`.
 4. Run `resolve`.
 5. Run a short batch first.
-6. Commit experiment changes together with any shared-code change they require.
-7. Run the canonical full batch only from a clean tree unless an explicit dirty
+6. Commit experiment changes together with any shared-code change they require
+   in your branch or fork.
+7. If the change adds reusable project behavior, open an upstream PR with the
+   reusable code, docs, and tests. Keep experiment-only history in the fork
+   unless the experiment is being promoted.
+8. Run the canonical full batch only from a clean tree unless an explicit dirty
    override is justified.
 
 Why short runs matter:
@@ -164,13 +195,22 @@ For documentation or planning work:
 2. Update the README and contributor docs to match.
 3. Avoid documenting behavior that the plan does not define.
 
-For new experiment contributions:
+For new experiments you plan to share or promote:
 
 - keep `notes.md` meaningful, not boilerplate
 - record the hypothesis, parent, fields under test, run plan, expected signal,
   and actual outcome
 - treat `notes.md` as the human explanation paired with the machine-readable
   run artifacts
+- set `metadata.owner` to the GitHub handle or organization label that should
+  stay attached to the work
+
+For promoted upstream experiments:
+
+- promotion is explicit and selective, not the default fate of every experiment
+- maintainers may assign a new upstream id in the same track before merge
+- once promoted, the experiment becomes part of the curated immutable upstream
+  history
 
 For finished experiments and bases:
 
@@ -228,12 +268,16 @@ Before opening a PR, confirm:
 
 - the change is in the narrowest correct layer
 - docs and plan still match each other
+- if the PR contains an experiment folder, it is an explicitly requested
+  promotion or a maintained example the project intends to own
 - any new config behavior is documented
 - any new shared component is reachable through the documented registry/config
   path
 - any new dataset path is documented and writes the required metadata contract
 - validation and error messages remain actionable
 - tests cover the changed behavior or the missing coverage is called out
+- experiment-only work the upstream project does not need to own remains in the
+  fork
 - if you added the second implementation in a registry family, you also proved
   the extension path is understandable through docs and tests
 
@@ -247,6 +291,9 @@ This project is easy to contribute to only if all of the following stay true:
   `resolve`
 - low-level math work has one shared home in C++
 - orchestration behavior has one shared home in Python
+- maintainers are not expected to review every community experiment
+- the upstream experiment history remains curated instead of becoming a dump of
+  all exploratory work
 - deployment-targeted work does not require a second project or a forked
   training stack
 

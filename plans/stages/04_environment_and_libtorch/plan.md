@@ -21,11 +21,13 @@ dependency bootstrap path without requiring the trainer code to exist yet.
 - environment classification for CUDA container, Dev Container, native macOS
   MPS, CPU-capable native host, compatible native host, and authoring-only host
 - LibTorch download into `third_party/libtorch/<platform_tag>/`
+- project-wide `configs/libtorch.lock.toml` parsing and checksum verification
 - platform-tag selection and cache reuse logic
 - canonical Docker and Dev Container definitions
 - baseline Docker and Dev Container definitions that are expected to expand in
   Stage 5 once the trainer build dependencies become concrete
-- accelerated-to-CPU fallback policy evaluation for short/debug local runs
+- accelerated-to-CPU fallback policy evaluation for short local runs
+- warning-only handling for newer LibTorch releases outside the pinned lock
 
 ## Out Of Scope
 
@@ -41,24 +43,40 @@ dependency bootstrap path without requiring the trainer code to exist yet.
 - unsupported environments fail before heavy build work
 - LibTorch bootstrap succeeds and caches cleanly per platform
 - accelerated runtime intent can be resolved to CUDA or MPS where supported
+- LibTorch bootstrap follows the project lock file instead of ad hoc version
+  selection
 
 ## Done Criteria
 
 - `doctor` reports accelerated availability, CPU availability, resolved backend
-  selection, and whether a short/debug accelerated request would fall back to
-  CPU
+  selection, and whether a short accelerated request would fall back to CPU
 - Docker and Dev Container reuse the same CUDA-path definition, with the
   explicit expectation that Stage 5 may extend those definitions for concrete
   trainer build requirements
 - LibTorch downloads are environment-scoped and reusable
+- the selected LibTorch archive is checksum-verified before extraction and
+  newer releases never auto-upgrade the pinned project version
 
 ## Test Gate
 
 - unit tests for environment classification and policy verdict generation
 - tests for supported versus authoring-only versus blocked command gating
 - bootstrap tests for platform-tag selection and cache reuse behavior
+- lockfile parsing and checksum verification tests
+- tests proving newer LibTorch releases surface as warnings rather than
+  auto-upgrades
 - fallback-policy tests for accelerated requests on CUDA, MPS, and CPU-only
   hosts
+
+## Collaboration Risks
+
+- `R1`: Stage 4 keeps environment setup and bootstrap deterministic from a clean
+  checkout.
+- `R6`: Stage 4 owns the supported bootstrap paths and avoids hidden alternate
+  dependency flows.
+- `R8`: Stage 4 pins toolchain-adjacent LibTorch inputs through the lock file
+  and checksum policy.
+- `R9`: Stage 4 keeps Python bootstrap on the documented `uv` path.
 
 ## Handoff To Stage 5
 

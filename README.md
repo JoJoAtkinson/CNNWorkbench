@@ -26,7 +26,10 @@ The workbench is meant to support three common experiment roots:
 - CPU target: deploy to CPU inference with a first-class CPU-oriented base
 
 The project is intentionally config-first. An experiment should usually be a
-new folder plus small config changes, not a fork of the C++ codebase.
+new folder plus small config changes, not a fork of the C++ codebase. The
+upstream repo is curated: most experiment-only work should live in branches or
+forks and be shared by link, while upstream mainly absorbs reusable framework
+changes and selected promoted experiments.
 
 For Phase 1, there are three intended local training paths:
 
@@ -66,7 +69,7 @@ There are six important concepts in this project:
   - Example: `100_accelerated_base_v1`, `200_fpga_base_v1`, or
     `300_cpu_base_v1`
 - `derived experiment`
-  - A tracked folder that extends a base or another experiment
+  - A tracked folder in a repo that extends a base or another experiment
   - Owns the specific hypothesis under test
 - `batch run`
   - One launch of one experiment
@@ -102,6 +105,8 @@ The maintainable split is:
 
 ```text
 CNNWorkbench/
+├── .github/
+│   └── workflows/
 ├── README.md
 ├── plan.md
 ├── pyproject.toml
@@ -130,8 +135,14 @@ CNNWorkbench/
 │       ├── experiment.toml
 │       └── notes.md
 ├── configs/
-│   └── datasets.toml
+│   ├── datasets.toml
+│   ├── libtorch.lock.toml
+│   ├── matrices/
+│   └── schemas/
+│       └── datasets_catalog.schema.json
 ├── datasets/
+├── references/
+├── reports/
 ├── third_party/
 │   └── libtorch/
 │       ├── linux-cuda/
@@ -175,7 +186,25 @@ CNNWorkbench/
 ```
 
 `datasets/`, `third_party/`, `build/`, and `runs/` are local runtime areas and
-should be ignored by git.
+should be ignored by git. `configs/`, `references/`, `reports/`, and
+`.github/workflows/` are tracked.
+
+## Sharing And Promotion
+
+The upstream `experiments/` tree is intentionally curated.
+
+- Most experiment-only work should stay in a branch or fork by default.
+- Share experiment work by linking the repo, commit, experiment folder, and
+  compare or report output in GitHub discussions, issues, or Discord.
+- Open upstream pull requests mainly for reusable Python or C++ changes, docs,
+  tests, new maintained bases, or explicitly requested promoted experiments.
+- `new_experiment` allocates the next id in the repo you are currently using.
+  Fork-local ids are local; a promoted experiment may be renumbered when it is
+  merged upstream.
+- Use `metadata.owner` as a stable GitHub handle or organization label when an
+  experiment is meant to be shared outside a private workspace.
+- GitHub pull requests compare one branch against upstream. Other experiment
+  branches can stay in the fork and do not have to be merged upstream.
 
 ## Requirements
 
@@ -191,7 +220,7 @@ The accelerated MPS-path requirements are:
 - Apple Silicon macOS host
 - Python 3.10+
 - `uv`
-- CMake
+- CMake 3.26+
 - a C++17-capable compiler
 - a compatible PyTorch and LibTorch MPS stack verified by `doctor`
 
@@ -199,7 +228,7 @@ The CPU native-host requirements are:
 
 - Python 3.10+
 - `uv`
-- CMake
+- CMake 3.26+
 - a C++17-capable compiler
 - a compatible LibTorch and runtime stack verified by `doctor`
 
@@ -246,7 +275,7 @@ long build or a failed training launch. It should identify the detected
 platform, whether accelerated or CPU training is available, whether CUDA or MPS
 is available, whether Docker, Dev Container, or native host mode is in use, and
 the next concrete fix when something is missing. It should also make clear when
-an accelerated short/debug request would fall back to CPU.
+an accelerated short request would fall back to CPU.
 
 Command notation used below:
 
@@ -288,7 +317,7 @@ Expected behavior:
 - The command reports detected Python, compiler, CMake, Docker, CUDA, MPS, CPU,
   and LibTorch compatibility details.
 - The command reports whether `train_runtime = "accelerated"` would resolve to
-  CUDA or MPS, and whether a short/debug local run would fall back to CPU.
+  CUDA or MPS, and whether a short local run would fall back to CPU.
 - Failures explain what is missing before build or training begins.
 
 Recommended development workflow:
@@ -321,8 +350,15 @@ Expected behavior:
 - The correct LibTorch package is downloaded for the current platform into an
   environment-scoped root such as `third_party/libtorch/linux-cuda/`,
   `third_party/libtorch/macos-mps/`, or `third_party/libtorch/macos-cpu/`.
+- The selected LibTorch package comes from the project-wide lock file at
+  `configs/libtorch.lock.toml`, and the archive is checksum-verified before
+  extraction.
 - The C++ trainer is configured and built into an environment-scoped output such
   as `build/linux-cuda/bin/cnnwb_train` or `build/macos-cpu/bin/cnnwb_train`.
+- The canonical trainer target is `cnnwb_train`.
+- Rebuilds are fingerprint-based. Config-only experiment changes do not rebuild
+  the C++ binary, but changes to tracked C++, CMake, toolchain, lock-file, or
+  artifact-schema inputs do.
 
 If `doctor` reports `authoring-only`, run only:
 
@@ -361,7 +397,8 @@ uv run python -m cnn_workbench.cli.new_experiment \
 
 Expected behavior:
 
-- The launcher picks the next available experiment id in the same track.
+- The launcher picks the next available experiment id in the same track in the
+  current repo checkout.
 - A new folder is created under `experiments/`.
 - `experiment.toml` is created with `experiment.id`, `experiment.name`, and
   `experiment.extends`.
@@ -369,6 +406,9 @@ Expected behavior:
   as `model.stage*`, `train`, and `short_run`.
 - `notes.md` is created from a template with sections for hypothesis, parent,
   fields under test, run plan, expected signal, and outcome.
+
+Ids are repo-local. If a fork-owned experiment is promoted upstream, the
+upstream repo assigns the next available id in that track before merge.
 
 Example generated file:
 
@@ -422,6 +462,8 @@ Expected behavior:
 
 - `check` validates the inheritance chain, dataset targets, run-profile
   eligibility, and git-policy rules before launch.
+- JSON-capable validation output uses a top-level `errors` array whose entries
+  contain `code`, `path`, `severity`, `message`, and optional `hint`.
 - Python resolves the full inheritance chain.
 - Dataset metadata is merged into one resolved child config per dataset.
 - The resolved configs are printed for inspection without creating a batch.
@@ -448,22 +490,28 @@ uv run python -m cnn_workbench.cli.run_local \
 Use `short` for early feedback on new configs or shared-code changes before a
 canonical full run. `run_local` should rerun the same blocking checks as
 `check` before it launches the batch. If `train_runtime = "accelerated"` is
-requested and no accelerated backend is available, short/debug local runs may
-fall back to CPU with a warning. Canonical full runs should fail until CPU is
-explicitly selected.
+requested and no accelerated backend is available, short local runs may fall
+back to CPU with a warning. Canonical full runs should fail until CPU is
+explicitly selected. If the trainer binary or LibTorch bootstrap artifacts are
+missing or stale, `run_local` should trigger the same bootstrap/build flow
+automatically before launch.
 
-### 7. Commit the experiment and then run the canonical full batch
+### 7. Commit in your branch or fork, then run the canonical full batch
 
 Normal workflow:
 
-1. Create the experiment folder.
+1. Create the experiment folder in your current repo or fork.
 2. Make any shared-code change needed for new reusable layers, losses, train
    loops, or FPGA-compatible math.
 3. Run `check`.
 4. Run `resolve`.
 5. Run `short`.
-6. Commit the experiment folder and the shared-code change together.
-7. Run the full batch from a clean tree.
+6. Commit the experiment folder and any required shared-code change together in
+   your branch or fork so the run is reproducible.
+7. If the change adds reusable project behavior, open an upstream PR with the
+   reusable code, docs, and tests. Keep experiment-only history in the fork
+   unless the experiment is being promoted.
+8. Run the full batch from a clean tree.
 
 Full runs should default to a clean git tree. A dirty-tree override should be
 explicit, and the run manifest should always record the commit, dirty flag, and
@@ -500,6 +548,8 @@ The hierarchy is:
   - canonical base for CPU-targeted deployment
 - derived experiments
   - extend a base or another experiment in the same track
+
+In the upstream repo, this hierarchy is curated rather than exhaustive.
 
 Suggested track bands:
 
@@ -695,6 +745,10 @@ create a new base version.
 `dataset_targets` refers to logical dataset ids from `configs/datasets.toml`,
 not hardcoded trainer flags.
 
+The dataset catalog is versioned. `configs/datasets.toml` carries a top-level
+`[schema]` table with `catalog_version = "1.0.0"`, and the tracked schema
+reference lives at `configs/schemas/datasets_catalog.schema.json`.
+
 Dataset preparation helpers should live under `src/cnn_workbench/datasets/`, not
 as a second set of standalone root-level scripts.
 
@@ -722,6 +776,10 @@ launching training.
 
 `resolve` stays pure by default and only prepares datasets when
 `--ensure-datasets` is explicitly requested.
+
+Dataset cache reuse requires both valid `metadata.json` and the configured
+sentinel marker when one is defined. Phase 1 dataset metadata is strict:
+`metadata.json` contains exactly `input_channels` and `num_classes`.
 
 ## Short Runs
 
@@ -763,8 +821,11 @@ Each child run should always include:
 - `experiment_source.toml`
 - `resolved_config.toml`
 - `run_manifest.json`
-- `train.log`
 - `summary.json`
+
+`train.log` exists only when the trainer process actually launches. Pre-trainer
+failures still write `experiment_source.toml`, `resolved_config.toml`,
+`run_manifest.json`, and `summary.json`.
 
 Successful child runs should also include:
 
@@ -780,19 +841,27 @@ The purpose of this layout is to answer, without digging through git history:
 - from which code state
 - what result it produced
 
+Persisted runtime artifacts are versioned. Semantic-version compatibility
+applies to runtime artifacts such as `resolved_config.toml`, `run_manifest.json`,
+and `summary.json`; authored `experiment.toml` stays on the current supported
+schema and is not treated as a backward-compatible artifact format.
+
 ## Reproducibility And Git Discipline
 
-Each experiment folder is tracked source of truth. Runtime output is not.
+Within a given repo, each experiment folder is tracked source of truth. Runtime
+output is not. The upstream repo intentionally contains only curated bases,
+examples, and promoted experiments.
 
 Normal author workflow:
 
-1. Scaffold from the correct base.
+1. Scaffold from the correct base in your current repo or fork.
 2. Edit only the config fields under test.
 3. Make any shared-code change needed for new reusable behavior.
 4. Run `check`.
 5. Run `resolve`.
 6. Run a `short` batch.
-7. Commit the experiment folder and shared code together.
+7. Commit the experiment folder and shared code together in your branch or
+   fork.
 8. Run the canonical `full` batch.
 9. Compare against the parent base or prior experiment.
 
@@ -800,11 +869,13 @@ Every child run should save:
 
 - the raw `experiment_source.toml`
 - the resolved child config
+- source repo URL when available
 - git commit
 - git dirty status
 - any saved patch files for dirty runs
 
-That is the mechanism that prevents experiments from being lost.
+That is the mechanism that prevents experiments from being lost while still
+making fork-shared runs traceable.
 
 ## Comparison And Test Expectations
 
@@ -814,6 +885,15 @@ Comparison should stay dataset-aware, profile-aware, and deployment-track-aware:
 - never silently collapse `numbers` and `fashion`
 - clearly label accelerated-target, CPU-targeted, and FPGA-targeted runs
 - clearly label requested runtime, resolved backend, and CPU-fallback runs
+
+FPGA-targeted comparisons use two tiers of validation:
+
+- shared smoke validation checks export, load, inference-artifact presence, and
+  target compatibility
+- promotion-grade FPGA decisions add a hardware gate covering export operator
+  whitelist compatibility, quantization or calibration validity, latency budget
+  compliance, and resource or utilization budget compliance when hardware
+  reports it
 
 Implementation work should include contract tests for:
 
@@ -849,7 +929,10 @@ Command expectations:
 - `doctor` verifies environment compatibility and reports actionable fixes.
 - `build` uses environment-scoped bootstrap and build roots so Docker CUDA and
   native-host artifacts do not overwrite each other.
-- `new_experiment` scaffolds the folder, config, and notes template.
+- `build` uses the project-wide LibTorch lock file, verifies archive checksums,
+  and rebuilds only when the build fingerprint changes.
+- `new_experiment` scaffolds the folder, config, and notes template using the
+  next available id in the current repo track.
 - `new_experiment` also includes commented starter overrides for common edits.
 - `check` is the normal pre-run validation step.
 - `resolve` is the normal pre-run inspection step and stays pure unless
@@ -858,7 +941,7 @@ Command expectations:
   artifacts.
 - `run_local` reruns the same blocking checks as `check`.
 - `run_local` may fall back from requested accelerated training to CPU only for
-  short/debug local runs, and that fallback must remain visible in artifacts.
+  short local runs, and that fallback must remain visible in artifacts.
 - `compare` reads completed batch artifacts only.
 - `prepare_datasets` prepares named datasets without launching training.
 
@@ -867,6 +950,21 @@ The C++ trainer should stay narrow:
 ```bash
 cnnwb_train --resolved-config <path> --output-dir <path>
 ```
+
+## Task Aliases And CI
+
+Optional task aliases should stay thin wrappers over the canonical Python CLI
+entrypoints. The intended examples are:
+
+```bash
+make build
+make check EXPERIMENT=102_accelerated_wider_model
+make test
+make compare EXPERIMENTS="100_accelerated_base_v1 102_accelerated_wider_model"
+```
+
+The minimum tracked CI surface is at least one workflow under
+`.github/workflows/` that runs `make test`.
 
 ## Documentation Review Checklist
 

@@ -22,11 +22,15 @@ local runs and completes the runtime artifact story for the common fast path.
 - parent batch expansion into ordered child dataset runs
 - sequential local execution
 - `run_manifest.json`, `summary.json`, and batch summary generation
-- git commit, dirty-state, and patch capture
+- git commit, source repo url, dirty-state, and patch capture
+- non-git sentinel values for provenance fields when `.git` is unavailable
 - stop-on-failure behavior
 - runtime artifact fields for requested training runtime, resolved backend,
   deploy target, and fallback state
 - trainer log teeing into `train.log`
+- auto-bootstrap and auto-build before launch when LibTorch or the trainer
+  binary is missing or stale
+- pre-trainer failure artifact writing before the trainer process starts
 
 ## Out Of Scope
 
@@ -39,13 +43,21 @@ local runs and completes the runtime artifact story for the common fast path.
 
 - contributors can run a short batch and inspect the resulting artifacts
 - failed child runs still produce meaningful summaries
+- runtime artifacts retain enough provenance to trace back to the originating
+  repo when available
 - CPU-fallback short runs are visible and cannot be mistaken for true
   accelerated runs
+- `run_local` can trigger the same bootstrap and build flow automatically before
+  launch instead of requiring a separate manual build step
 
 ## Done Criteria
 
 - `run_local --run-profile short` works end to end for scratch-mode experiments
 - successful and failed child runs both produce the required artifact set
+- non-git runs record the documented sentinel provenance values and still
+  proceed normally
+- pre-trainer failures still write `experiment_source.toml`,
+  `resolved_config.toml`, `run_manifest.json`, and `summary.json`
 - dirty-tree and stop-on-failure policies behave as documented
 
 ## Test Gate
@@ -53,11 +65,28 @@ local runs and completes the runtime artifact story for the common fast path.
 - integration tests for successful local batch execution on tiny datasets
 - failure-path tests for trainer crash, dataset prepare failure, and dirty-tree
   policy rejection
-- artifact schema assertions for manifest, summary, and batch summary files
+- artifact schema assertions for manifest, summary, and batch summary files,
+  including source-repo provenance
+- tests proving non-git execution records the documented sentinel provenance
+  values
+- tests proving `run_local` triggers bootstrap and build automatically when the
+  required artifacts are missing or stale
 - failure-path assertions proving that pre-trainer and trainer-crash cases still
   write a valid failure `summary.json`
+- failure-path assertions proving pre-trainer failures omit `train.log` while
+  still writing the other required artifacts
 - assertions that CPU-fallback short runs are distinguishable from accelerated
   runs
+
+## Collaboration Risks
+
+- `R1`: Stage 6 preserves the clean-checkout run path by auto-running required
+  bootstrap and build steps before launch.
+- `R2`: Stage 6 keeps short runs as the normal fast-feedback loop before larger
+  changes are promoted.
+- `R7`: Stage 6 keeps runtime artifacts clearly separate from tracked source.
+- `R10`: Stage 6 keeps manifests, summaries, and other text artifacts as the
+  canonical review surface for run outcomes.
 
 ## Handoff To Stage 7
 

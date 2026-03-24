@@ -18,6 +18,11 @@ useful for:
   - full target design and contracts
 - [plan-stages.md](/Users/joe/GitHub/CNNWorkbench/plan-stages.md)
   - stage ordering, dependencies, and acceptance gates
+- [plans/collaboration-risk-matrix.md](/Users/joe/GitHub/CNNWorkbench/plans/collaboration-risk-matrix.md)
+  - cross-cutting collaboration audit keyed by `R1` through `R10`
+- [plans/mock_implementation_learned.md](/Users/joe/GitHub/CNNWorkbench/plans/mock_implementation_learned.md)
+  - implementation-discovered decisions that have already been folded back into
+    the planning contract
 - `plans/stages/*/plan.md`
   - per-stage implementation plans derived from the staged delivery plan
 
@@ -48,7 +53,8 @@ When implementation changes the design:
 
 1. update [plan.md](/Users/joe/GitHub/CNNWorkbench/plan.md) if the contract or architecture changes
 2. update the affected stage file under `plans/stages/`
-3. update contributor-facing docs such as
+3. update [plans/collaboration-risk-matrix.md](/Users/joe/GitHub/CNNWorkbench/plans/collaboration-risk-matrix.md) if the change affects setup flow, artifact ownership, reviewability, or other collaboration-critical behavior
+4. update contributor-facing docs such as
    [README.md](/Users/joe/GitHub/CNNWorkbench/README.md) and
    [CONTRIBUTING.md](/Users/joe/GitHub/CNNWorkbench/CONTRIBUTING.md)
-4. only then implement or revise code
+5. only then implement or revise code
