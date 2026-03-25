@@ -24,5 +24,7 @@ Current acceptance IDs:
 - `ACC-005`: resume, fine-tune, and compare runs
 - `ACC-006`: validate FPGA-targeted experiments through the shared system
 - `ACC-007`: maintain the planning consistency layer itself
+- `ACC-008`: keep model composition readable and extensible in shared code
+- `ACC-009`: scaffold experiment-owned C++ model definitions and portable artifacts
 
-Canonical IDs: REQ-017, REQ-018, ASM-004, CON-005, CON-009
+Canonical IDs: REQ-017, REQ-018, REQ-019, REQ-020, REQ-021, ASM-004, CON-005, CON-009, CON-013, CON-014, CON-015

@@ -1,32 +1,70 @@
 # CNN Workbench
 
-CNN Workbench is a local-first, LibTorch-based experiment workbench for CNN
-training.
+CNN Workbench is a CNN experimentation platform where the output is code you
+own: when an experiment produces the result you want, you copy `model.cpp` and
+the shared C++ library into your production repo and compile. The workbench
+stays in the lab; your model code goes to production.
 
-One rule drives the whole design: Python resolves human-authored inputs into one
-TOML config per dataset child run, and that resolved config is the only runtime
-contract the C++ trainer consumes.
+## Why Not Just Export?
 
-Why LibTorch:
+ONNX is a reasonable answer for standard GPU or CPU inference — it produces a
+portable graph that any compliant runtime can load, with no Python dependency
+at the production end. Where it breaks down is hardware-constrained targets.
 
-- FPGA-first motivation: low-level arithmetic can live in the same C++ layer as
-  FPGA-oriented deployment constraints.
-- Flexible cross-target architecture: the same framework can still support
-  accelerated and CPU-targeted experiments without forking the project by
-  target.
-- Standalone C++ execution path: worker nodes can run `cnnwb_train` with
-  bundled LibTorch libraries instead of depending on a full Python/PyTorch
-  environment.
+ONNX defines a standardized, versioned operator set that runtimes implement.
+Shift activations, barrel-shift normalization, and power-of-2 quantization
+schemes that map cleanly to FPGA logic are not in that set. The existence of
+projects like QONNX — which adds new operator types specifically for
+arbitrary-precision quantization — illustrates the gap: people extend ONNX
+precisely because the base set is not sufficient for hardware-constrained
+designs. You can work around this with custom ONNX operators, but custom ops
+must be implemented by each target runtime, which shifts the burden rather than
+eliminating it, and most FPGA vendor toolchains won't carry them. The
+alternative — approximating non-standard ops using standard ONNX nodes — can
+alter numerical behaviour, especially in quantized or hardware-constrained
+designs where exact arithmetic is the point.
+
+The deeper issue is that an export artifact is designed for execution, not
+co-design. ONNX graphs are inspectable, but they are not a source-level
+representation suited for hardware-aware modification. Your production team
+gets a graph they can run and inspect, but not one designed for adapting shift
+widths, changing quantization modes, or fitting a particular FPGA build system.
+`model.cpp` gives them source: they can read the architecture, see exactly what
+shift widths and quantization modes are in play, and adapt it without any
+dependency on this workbench or its runtime.
+
+## How It Works
+
+Each experiment owns a `model.cpp` that defines its architecture using shared
+C++ library primitives. Training and execution settings live separately in
+TOML config that the Python orchestrator resolves before each run. The two
+stay separate so the model artifact that leaves the workbench is already clean.
+
+Experiments run locally first to shorten the iteration cycle. Cloud submission
+is a planned second path that consumes the same resolved config contract.
+
+## Why LibTorch
+
+- **Cross-target in one codebase**: accelerated GPU (CUDA and MPS),
+  FPGA-targeted, and CPU training paths without forking by target.
+- **FPGA-compatible arithmetic**: INT8 quantization, shift activations, and
+  barrel-shift normalization live in the same C++ layer as architecture, so
+  hardware constraints are enforced where they belong.
+- **Standalone execution**: worker nodes run the compiled `cnnwb_train` binary
+  with bundled LibTorch libraries — no Python environment needed at training
+  time.
+
+## Supported Targets
 
 The workbench is meant to support three common experiment roots:
 
 - accelerated target: deploy to an accelerated inference path
-- FPGA target: deploy to 8-bit FPGA inference using the inspiration profile
-  under `inspiration_sources/FPGAResNet18-LibTorch/`
+- FPGA target: deploy to 8-bit FPGA inference
 - CPU target: deploy to CPU inference with a first-class CPU-oriented base
 
-The project is intentionally config-first. An experiment should usually be a
-new folder plus small config changes, not a fork of the C++ codebase. The
+The project is intentionally config-first for training and execution behavior.
+An experiment should usually be a new folder plus small TOML changes and an
+experiment-local `model.cpp`, not a fork of the shared C++ library. The
 upstream repo is curated: most experiment-only work should live in branches or
 forks and be shared by link, while upstream mainly absorbs reusable framework
 changes and selected promoted experiments.
@@ -50,26 +88,62 @@ Planning source of truth:
 - trace and checksum reporting live under `plans/trace/`
 - this README remains the newcomer-facing narrative entrypoint
 
-Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-013, REQ-014, REQ-015, CON-003, CON-005
+## TPU / XLA: What This Repo Does and Does Not Do
 
-## Goals
+TPUs (Tensor Processing Units) are Google-designed hardware accelerators built
+for machine learning workloads. For matrix-heavy ML operations they are
+significantly faster than CPU and in some workloads more cost-effective than
+GPU. They are a legitimate deployment target, and some engineers evaluating
+this repo will have TPU in mind either for training or inference.
 
-- A new user can create a baseline experiment.
-- A new user can derive a second experiment from the baseline.
-- A user can change hyperparameters, model structure, layer selection, or
-  reusable training behavior without cloning the whole codebase.
-- A user can make deployment-targeted changes for accelerated, FPGA, and CPU
-  targets without rewriting earlier experiments.
-- A user can run experiments locally.
-- A user can compare results across experiments without digging through git
-  history.
-- The same resolved child-run contract can later be used for Azure.
+This repo's output is a C++ artifact you own and ship: `model.cpp` plus
+supporting shared C++ code that compiles against LibTorch and goes directly
+into a production build. That is the primary design goal. TPU is not a
+first-class target here, and that is intentional rather than an oversight.
+Adding TPU/XLA as a first-class concern would pull the design toward a
+Python/XLA-centered workflow, which is the opposite of what this repo is for.
 
-Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-009, REQ-011, REQ-012
+**Why `model.cpp` does not map directly to TPU**
 
-## Mental Model
+TPUs do not execute LibTorch C++. The standard TPU path runs through
+PyTorch/XLA — a Python library that traces PyTorch operations and compiles them
+to XLA (Google's Accelerated Linear Algebra runtime) for dispatch to TPU
+hardware. That is a separate ecosystem from the C++ LibTorch stack this
+workbench is built on.
 
-There are six important concepts in this project:
+**The theoretical export path, if you need it**
+
+If you have experiments here and genuinely need a TPU path, the route is:
+keep or reconstruct the model as a standard PyTorch model in Python, use
+`torch.export` to produce a portable representation, then convert it through
+`torch_xla` or StableHLO tooling into the XLA ecosystem. This is possible in
+theory and is the correct approach for that goal — but it is a separate project
+from what this repo produces, and it means leaving the C++ artifact story
+behind.
+
+**What does transfer**
+
+The training discipline enforced here — INT8 weight ranges, constrained
+numeric formats, architectures that avoid fixed-point-unfriendly operations —
+is not FPGA-specific. Integer accelerators including TPUs benefit from the same
+preparation. If you have used this repo to develop quantization-aware
+experiments, that understanding and those architectural choices are reusable
+knowledge when approaching a TPU project. The artifact does not transfer
+directly; the design thinking does.
+
+**Bottom line**
+
+If your real goal is TPU as a primary production or research target, build that
+path in Python with PyTorch/XLA. That is the natural home for it, and this repo
+is not the right place to force that workflow. If your goal is owning and
+shipping a C++ artifact with hardware-constrained inference characteristics,
+this repo is designed for exactly that.
+
+## Key Concepts
+
+Before running experiments, it helps to know what each piece is called. These terms appear throughout the Quick Start and CLI commands.
+
+There are six concepts in this project:
 
 - `template`
   - `experiments/000_template/`
@@ -80,8 +154,9 @@ There are six important concepts in this project:
   - Example: `100_accelerated_base_v1`, `200_fpga_base_v1`, or
     `300_cpu_base_v1`
 - `derived experiment`
-  - A tracked folder in a repo that extends a base or another experiment
-  - Owns the specific hypothesis under test
+  - A tracked folder in a repo that extends a base
+  - Owns the specific hypothesis under test and its experiment-local
+    `model.cpp`
 - `batch run`
   - One launch of one experiment
   - Expands into one child run per dataset in `dataset_targets`
@@ -96,130 +171,6 @@ The key machine-facing distinction is:
 - the authored experiment folder is for humans
 - the resolved child run is the transferable execution contract used locally or
   on a remote node
-
-Canonical IDs: REQ-001, REQ-002, CON-001, CON-003
-
-## Architecture
-
-The maintainable split is:
-
-- Python owns authored config loading, inheritance resolution, dataset
-  expansion, policy checks, batch planning, artifact bookkeeping, and future
-  Azure submission
-- C++ with LibTorch owns one resolved child run at a time
-- shared Python domain contracts define the in-memory shapes used across
-  `check`, `resolve`, `run_local`, `compare`, and later Azure submission
-- versioned artifact serializers own `resolved_config.toml`,
-  `run_manifest.json`, and `summary.json`
-- launch gating lives in one shared policy layer rather than being repeated in
-  each command
-
-Canonical IDs: REQ-002, REQ-007, REQ-008, REQ-009, CON-003, CON-005
-
-## Planned Repository Layout
-
-```text
-CNNWorkbench/
-├── .github/
-│   └── workflows/
-├── README.md
-├── plan.md
-├── pyproject.toml
-├── compose.yaml
-├── .devcontainer/
-│   └── devcontainer.json
-├── docker/
-│   └── workbench.Dockerfile
-├── experiments/
-│   ├── 000_template/
-│   │   ├── experiment.toml
-│   │   └── notes.md
-│   ├── 100_accelerated_base_v1/
-│   │   ├── experiment.toml
-│   │   └── notes.md
-│   ├── 101_accelerated_baseline/
-│   │   ├── experiment.toml
-│   │   └── notes.md
-│   ├── 200_fpga_base_v1/
-│   │   ├── experiment.toml
-│   │   └── notes.md
-│   ├── 300_cpu_base_v1/
-│   │   ├── experiment.toml
-│   │   └── notes.md
-│   └── 201_fpga_baseline/
-│       ├── experiment.toml
-│       └── notes.md
-├── configs/
-│   ├── datasets.toml
-│   ├── libtorch.lock.toml
-│   ├── matrices/
-│   └── schemas/
-│       └── datasets_catalog.schema.json
-├── datasets/
-├── references/
-├── reports/
-├── third_party/
-│   └── libtorch/
-│       ├── linux-cuda/
-│       ├── linux-cpu/
-│       ├── macos-cpu/
-│       └── macos-mps/
-├── build/
-│   ├── linux-cuda/
-│   │   └── bin/
-│   ├── linux-cpu/
-│   │   └── bin/
-│   ├── macos-cpu/
-│   │   └── bin/
-│   └── macos-mps/
-│       └── bin/
-├── src/cnn_workbench/
-│   ├── cli/
-│   ├── bootstrap/
-│   ├── domain/
-│   ├── policies/
-│   ├── check/
-│   ├── compare/
-│   ├── datasets/
-│   ├── doctor/
-│   ├── resolve/
-│   ├── runs/
-│   ├── scaffold/
-│   └── artifacts/
-├── cpp/
-│   ├── layers/
-│   ├── losses/
-│   ├── main/
-│   ├── math/
-│   ├── models/
-│   ├── optimizers/
-│   ├── registries/
-│   ├── schedulers/
-│   └── train_loops/
-├── tests/
-└── runs/
-```
-
-`datasets/`, `third_party/`, `build/`, and `runs/` are local runtime areas and
-should be ignored by git. `configs/`, `references/`, `reports/`, and
-`.github/workflows/` are tracked.
-
-## Sharing And Promotion
-
-The upstream `experiments/` tree is intentionally curated.
-
-- Most experiment-only work should stay in a branch or fork by default.
-- Share experiment work by linking the repo, commit, experiment folder, and
-  compare or report output in GitHub discussions, issues, or Discord.
-- Open upstream pull requests mainly for reusable Python or C++ changes, docs,
-  tests, new maintained bases, or explicitly requested promoted experiments.
-- `new_experiment` allocates the next id in the repo you are currently using.
-  Fork-local ids are local; a promoted experiment may be renumbered when it is
-  merged upstream.
-- Use `metadata.owner` as a stable GitHub handle or organization label when an
-  experiment is meant to be shared outside a private workspace.
-- GitHub pull requests compare one branch against upstream. Other experiment
-  branches can stay in the fork and do not have to be merged upstream.
 
 ## Requirements
 
@@ -266,32 +217,6 @@ Docker and Dev Container serve different roles:
 - MPS acceleration on Apple Silicon should use the native macOS host path, not
   the Docker or Dev Container path.
 
-Phase 1 has six practical environment states:
-
-- supported accelerated CUDA environment
-  - can scaffold, resolve, compare, and train through Docker or the Dev
-    Container
-- supported accelerated MPS environment
-  - can scaffold, resolve, compare, and train from the native macOS host
-- supported CPU training environment
-  - can scaffold, resolve, compare, and train from the native host after
-    `doctor` confirms the required runtime stack
-- supported compatible native-host training environment
-  - can scaffold, resolve, compare, and train from the native host after
-    `doctor` confirms the required runtime stack
-- authoring-only environment
-  - can scaffold, resolve, compare, and prepare datasets
-  - cannot launch canonical training
-- incompatible environment
-  - must fail before build or training starts
-
-The intended behavior is that `doctor` reports which state you are in before a
-long build or a failed training launch. It should identify the detected
-platform, whether accelerated or CPU training is available, whether CUDA or MPS
-is available, whether Docker, Dev Container, or native host mode is in use, and
-the next concrete fix when something is missing. It should also make clear when
-an accelerated short request would fall back to CPU.
-
 Command notation used below:
 
 - if you are using the CUDA Docker path, enter the workbench shell first and
@@ -323,17 +248,7 @@ Native macOS MPS path:
 uv run python -m cnn_workbench.cli.doctor
 ```
 
-Expected behavior:
-
-- The command reports whether you are in a supported accelerated CUDA
-  environment, a supported accelerated MPS environment, a supported CPU
-  training environment, a supported compatible native-host environment, an
-  authoring-only environment, or an incompatible environment.
-- The command reports detected Python, compiler, CMake, Docker, CUDA, MPS, CPU,
-  and LibTorch compatibility details.
-- The command reports whether `train_runtime = "accelerated"` would resolve to
-  CUDA or MPS, and whether a short local run would fall back to CPU.
-- Failures explain what is missing before build or training begins.
+`doctor` reports your environment state, detected hardware (CUDA, MPS, or CPU), and what needs to be fixed before any build or training starts.
 
 Recommended development workflow:
 
@@ -354,26 +269,7 @@ Recommended development workflow:
 
 ```bash
 uv sync
-uv run python -m cnn_workbench.cli.build
 ```
-
-Expected behavior:
-
-- Python dependencies are installed.
-- The build step rechecks critical compatibility assumptions before doing heavy
-  work.
-- The correct LibTorch package is downloaded for the current platform into an
-  environment-scoped root such as `third_party/libtorch/linux-cuda/`,
-  `third_party/libtorch/macos-mps/`, or `third_party/libtorch/macos-cpu/`.
-- The selected LibTorch package comes from the project-wide lock file at
-  `configs/libtorch.lock.toml`, and the archive is checksum-verified before
-  extraction.
-- The C++ trainer is configured and built into an environment-scoped output such
-  as `build/linux-cuda/bin/cnnwb_train` or `build/macos-cpu/bin/cnnwb_train`.
-- The canonical trainer target is `cnnwb_train`.
-- Rebuilds are fingerprint-based. Config-only experiment changes do not rebuild
-  the C++ binary, but changes to tracked C++, CMake, toolchain, lock-file, or
-  artifact-schema inputs do.
 
 If `doctor` reports `authoring-only`, run only:
 
@@ -410,22 +306,11 @@ uv run python -m cnn_workbench.cli.new_experiment \
   --slug cpu_debug_profile
 ```
 
-Expected behavior:
+Creates `experiments/<id>/` with `experiment.toml`, a copy of the base `model.cpp`, and a `notes.md` template.
 
-- The launcher picks the next available experiment id in the same track in the
-  current repo checkout.
-- A new folder is created under `experiments/`.
-- `experiment.toml` is created with `experiment.id`, `experiment.name`, and
-  `experiment.extends`.
-- `experiment.toml` includes commented starter blocks for common overrides such
-  as `model.stage*`, `train`, and `short_run`.
-- `notes.md` is created from a template with sections for hypothesis, parent,
-  fields under test, run plan, expected signal, and outcome.
+Ids are repo-local. If a fork-owned experiment is promoted upstream, the upstream repo assigns the next available id before merge.
 
-Ids are repo-local. If a fork-owned experiment is promoted upstream, the
-upstream repo assigns the next available id in that track before merge.
-
-Example generated file:
+Example generated files:
 
 ```toml
 [experiment]
@@ -434,30 +319,43 @@ name = "Accelerated Wider Model"
 extends = "100_accelerated_base_v1"
 kind = "experiment"
 
-# Common override snippets:
-# [model.stage2]
-# out_channels = 96
-#
+# Common non-architecture override snippets:
 # [short_run]
 # max_items = 5000
 ```
 
-### 4. Author only the fields under test
+```cpp
+// experiments/102_accelerated_wider_model/model.cpp
+#include "cpp/models/staged_cnn.hpp"
 
-For simple model structure changes, update only the relevant stage or training
-section. Do not copy the full parent config into the child experiment.
+auto build_model() {
+    return make_staged_cnn({
+        {64, 64, 2, 1},
+        {64, 96, 3, 2},
+        {96, 256, 2, 2},
+        {256, 512, 2, 2},
+    });
+}
+```
+
+### 4. Edit the scaffolded model.cpp and the fields under test
+
+For model structure work, edit the scaffolded `model.cpp`. Use
+`experiment.toml` for training, runtime, dataset, and optimizer settings. Do
+not hand-copy unrelated parent sections into the child experiment, and do not
+build a new experiment on top of another non-base experiment.
 
 Example:
 
-```toml
-[experiment]
-id = "102_accelerated_wider_model"
-name = "Accelerated Wider Model"
-extends = "100_accelerated_base_v1"
-kind = "experiment"
-
-[model.stage2]
-out_channels = 96
+```cpp
+auto build_model() {
+    return make_staged_cnn({
+        {64, 64, 2, 1},
+        {64, 96, 3, 2},   // widened experiment stage
+        {96, 256, 2, 2},
+        {256, 512, 2, 2},
+    });
+}
 ```
 
 ### 5. Check and resolve before running
@@ -473,28 +371,18 @@ uv run python -m cnn_workbench.cli.resolve \
   --diff-from-parent
 ```
 
-Expected behavior:
-
-- `check` validates the inheritance chain, dataset targets, run-profile
-  eligibility, and git-policy rules before launch.
-- JSON-capable validation output uses a top-level `errors` array whose entries
-  contain `code`, `path`, `severity`, `message`, and optional `hint`.
-- Python resolves the full inheritance chain.
-- Dataset metadata is merged into one resolved child config per dataset.
-- The resolved configs are printed for inspection without creating a batch.
-- Preview output uses deterministic placeholder ids such as
-  `batch_id = "preview"` and `child_id = "preview_01_numbers"`.
-- `--diff-from-parent` shows the minimal authored overrides alongside the fully
-  resolved child configs.
-- When `--run-profile short` is used, the output includes the expanded
-  `short_run.eval_items` schedule.
-- `resolve` stays pure by default. If dataset metadata is missing, it reports
-  that clearly and you can run `prepare_datasets` first or opt into
-  `resolve --ensure-datasets`.
+`check` validates the inheritance chain, dataset targets, and run-profile eligibility. `resolve` walks the full inheritance chain and prints the complete child configs for inspection without creating a batch. Use `--diff-from-parent` to see only what the experiment overrides. If dataset metadata is missing, `resolve` says so — run `prepare_datasets` first or pass `--ensure-datasets`.
 
 `resolve` is part of the normal author workflow, not a debugging-only command.
 
-### 6. Run a short batch first
+### 6. Build the experiment, then run a short batch first
+
+```bash
+uv run python -m cnn_workbench.cli.build \
+  --experiment 102_accelerated_wider_model
+```
+
+Downloads and verifies LibTorch for your platform if needed, then builds the C++ trainer under `build/<platform_tag>/<experiment_id>/`. Rebuilds are fingerprint-based — changing `experiment.toml` training settings does not trigger a rebuild, but changes to `model.cpp` or shared C++ do.
 
 ```bash
 uv run python -m cnn_workbench.cli.run_local \
@@ -502,14 +390,16 @@ uv run python -m cnn_workbench.cli.run_local \
   --run-profile short
 ```
 
-Use `short` for early feedback on new configs or shared-code changes before a
-canonical full run. `run_local` should rerun the same blocking checks as
-`check` before it launches the batch. If `train_runtime = "accelerated"` is
-requested and no accelerated backend is available, short local runs may fall
-back to CPU with a warning. Canonical full runs should fail until CPU is
-explicitly selected. If the trainer binary or LibTorch bootstrap artifacts are
-missing or stale, `run_local` should trigger the same bootstrap/build flow
-automatically before launch.
+Use `short` for early feedback on new configs, `model.cpp` edits, or shared
+library changes before a canonical full run. `run_local` should rerun the same
+blocking checks as `check` before it launches the batch. If
+`train_runtime = "accelerated"` is requested and no accelerated backend is
+available, short local runs may fall back to CPU with a warning. Canonical full
+runs should fail until CPU is explicitly selected. If the experiment binary or
+LibTorch bootstrap artifacts are missing or stale, `run_local` should trigger
+the same build flow automatically before launch. Python also translates the
+trainer's raw `metrics.csv` into TensorBoard event logs so contributors can
+inspect progress without giving the trainer TensorBoard-specific dependencies.
 
 ### 7. Commit in your branch or fork, then run the canonical full batch
 
@@ -539,8 +429,6 @@ uv run python -m cnn_workbench.cli.compare \
   --experiments 100_accelerated_base_v1 102_accelerated_wider_model
 ```
 
-Expected behavior:
-
 - Results are grouped by dataset.
 - `short` and `full` runs are never mixed silently.
 - Deployment-target, requested-runtime, resolved-backend, and fallback metadata
@@ -562,7 +450,7 @@ The hierarchy is:
 - `300_cpu_base_v1`
   - canonical base for CPU-targeted deployment
 - derived experiments
-  - extend a base or another experiment in the same track
+  - extend a base in the same track
 
 In the upstream repo, this hierarchy is curated rather than exhaustive.
 
@@ -595,206 +483,15 @@ When a broad improvement should become common for future work, create a new base
 version instead of editing the older base. That keeps historical experiments
 valid without reconstructing old behavior from git history.
 
-## How To Change Behavior
-
-There are five expected levels of change.
-
-### 1. Change only training settings
-
-Use `experiment.toml` when changing:
-
-- epochs
-- batch size
-- optimizer selection
-- optimizer hyperparameters
-- scheduler selection
-- seed
-- validation split
-- checkpoint cadence
-
-Use `train_runtime`, not a second per-experiment device flag, when changing the
-training runtime. If a run belongs on a different deployment target, start from
-a different base or create a new base version.
-
-### 2. Change model composition through config
-
-Use `experiment.toml` when selecting different reusable modules by name or
-changing stage-level structure.
-
-The authored config should use named stage tables, not raw layer arrays, so a
-child experiment can override one stage without copying the rest of the
-architecture.
-
-Example:
-
-```toml
-[model]
-backbone = "staged_cnn"
-head = "linear_head"
-block = "conv_bn_relu"
-norm = "batch_norm"
-activation = "relu"
-width = 32
-depth = 2
-dropout = 0.10
-
-[model.stage1]
-out_channels = 32
-blocks = 2
-pool = "max2"
-
-[model.stage2]
-out_channels = 64
-blocks = 2
-pool = "max2"
-```
-
-### 3. Change reusable training behavior through config
-
-Training behavior is not limited to optimizer and scheduler. The documented
-config surface should include reusable sections such as:
-
-- `[loss]`
-- `[train_loop]`
-- `[quantization]`
-- `[deployment]`
-
-Example:
-
-```toml
-[loss]
-name = "cross_entropy"
-label_smoothing = 0.0
-
-[train_loop]
-name = "supervised_classifier"
-precision = "amp"
-gradient_accumulation_steps = 1
-grad_clip_norm = 0.0
-freeze_backbone_epochs = 0
-
-[quantization]
-mode = "none"
-
-[deployment]
-export_profile = "none"
-validate_target_inference = false
-```
-
-### 4. Add new reusable shared components
-
-When config is not enough, add shared code instead of embedding one-off code in
-an experiment folder.
-
-Expected workflow:
-
-1. Add the new reusable component in shared C++ code.
-2. Register it in the relevant registry.
-3. Expose its parameters in the documented schema.
-4. Reference it by name from the experiment config.
-5. Create a new experiment that selects it.
-
-Likely component families:
-
-- backbones and heads
-- blocks, layers, and nodes
-- losses
-- train loops
-- optimizers and schedulers
-- low-level math and quantization primitives
-
-### 5. Change the underlying math
-
-If you need to change the actual numeric behavior of a node, activation,
-quantizer, or normalization rule, treat it as shared framework work:
-
-- implement it in shared code
-- test it directly
-- expose it through registries and config
-- create an experiment that selects it
-
-The FPGA track is the main example of this level. It may need INT8 quantized
-weights, fake quantization with STE, shift activations, barrel-shift
-normalization, or other hardware-compatible math from the inspiration project.
-
-## Deployment Base Defaults
-
-`100_accelerated_base_v1` should own defaults for:
-
-- `runtime.train_runtime = "accelerated"`
-- `track.deploy_target = "accelerated"`
-- `track.constraints_profile = "accelerated_default"`
-- `quantization.mode = "none"`
-- `deployment.export_profile = "none"`
-
-`200_fpga_base_v1` should own defaults for:
-
-- `runtime.train_runtime = "accelerated"`
-- `track.deploy_target = "fpga"`
-- `track.constraints_profile = "fpga_int8_v1"`
-- inspiration-profile defaults needed for 8-bit FPGA compatibility
-
-`300_cpu_base_v1` should own defaults for:
-
-- `runtime.train_runtime = "cpu"`
-- `track.deploy_target = "cpu"`
-- `track.constraints_profile = "cpu_default"`
-- `quantization.mode = "none"`
-- `deployment.export_profile = "none"`
-
-The FPGA base is where inspiration-project rules belong. That includes shared
-defaults such as:
-
-- INT8-oriented quantization behavior
-- power-of-2 or shift-based activation choices
-- barrel-shift or other FPGA-compatible normalization choices
-- deployment/export checks for the FPGA target
-
-Child experiments inherit the deployment target from the base. They should not
-switch from accelerated-target to FPGA-targeted or CPU-targeted deployment
-partway through an `extends` chain. If you need a new common target pattern,
-create a new base version.
-
 ## Dataset Preparation
 
-`dataset_targets` refers to logical dataset ids from `configs/datasets.toml`,
-not hardcoded trainer flags.
-
-The dataset catalog is versioned. `configs/datasets.toml` carries a top-level
-`[schema]` table with `catalog_version = "1.0.0"`, and the tracked schema
-reference lives at `configs/schemas/datasets_catalog.schema.json`.
-
-Dataset preparation helpers should live under `src/cnn_workbench/datasets/`, not
-as a second set of standalone root-level scripts.
-
-The intended behavior is:
-
-1. Resolve the dataset id from the catalog.
-2. Read cached runtime metadata when it is already present.
-3. If files or metadata are missing, report that state clearly.
-4. `prepare_datasets`, `run_local`, or `resolve --ensure-datasets` may run the
-   configured Python prepare entrypoint.
-5. Read runtime metadata such as `input_channels` and `num_classes`.
-6. `resolve` uses that metadata to print complete preview configs without
-   creating a batch.
-7. `run_local` starts training only after preparation succeeds.
-
-Dataset preparation should be automatic and idempotent during `run_local`. The
-explicit helper is:
+Dataset preparation runs automatically when you call `run_local`. To prepare ahead of time without launching training:
 
 ```bash
 uv run python -m cnn_workbench.cli.prepare_datasets numbers fashion
 ```
 
-Use that command when you want to prepare datasets ahead of time without
-launching training.
-
-`resolve` stays pure by default and only prepares datasets when
-`--ensure-datasets` is explicitly requested.
-
-Dataset cache reuse requires both valid `metadata.json` and the configured
-sentinel marker when one is defined. Phase 1 dataset metadata is strict:
-`metadata.json` contains exactly `input_channels` and `num_classes`.
+`resolve` stays pure by default and only prepares datasets when `--ensure-datasets` is passed explicitly.
 
 ## Short Runs
 
@@ -804,20 +501,7 @@ normal full-run epoch loop.
 Use `short` when you want early feedback after the first few hundred or few
 thousand training items without paying for a full canonical run.
 
-The intended default is that short runs are enabled in the template with a sane
-Fibonacci-based schedule so a newly scaffolded experiment can use `--run-profile
-short` immediately.
-
-Author-facing options should include:
-
-- `short_run.enabled`
-- `short_run.max_items`
-- `short_run.schedule`
-- `short_run.base_items`
-- `short_run.explicit_eval_items`
-
-The intended default schedule is Fibonacci multiples of `base_items`, expanded
-by Python into explicit milestone counts before calling the trainer.
+The template enables short runs by default with a Fibonacci-based milestone schedule, so a newly scaffolded experiment can use `--run-profile short` immediately.
 
 ## Run Artifacts
 
@@ -845,6 +529,8 @@ failures still write `experiment_source.toml`, `resolved_config.toml`,
 Successful child runs should also include:
 
 - `metrics.csv`
+- `tensorboard/`
+  - Python-generated TensorBoard event logs derived from `metrics.csv`
 - `checkpoints/best.pt`
 - `checkpoints/last.pt`
 
@@ -856,10 +542,9 @@ The purpose of this layout is to answer, without digging through git history:
 - from which code state
 - what result it produced
 
-Persisted runtime artifacts are versioned. Semantic-version compatibility
-applies to runtime artifacts such as `resolved_config.toml`, `run_manifest.json`,
-and `summary.json`; authored `experiment.toml` stays on the current supported
-schema and is not treated as a backward-compatible artifact format.
+TensorBoard event logs are a derived visualization surface, not the canonical
+review artifact. The source of truth remains the text-first runtime outputs
+such as `metrics.csv`, `run_manifest.json`, and `summary.json`.
 
 ## Reproducibility And Git Discipline
 
@@ -880,53 +565,19 @@ Normal author workflow:
 8. Run the canonical `full` batch.
 9. Compare against the parent base or prior experiment.
 
-Every child run should save:
+That is the mechanism that prevents experiments from being lost while still making fork-shared runs traceable.
 
-- the raw `experiment_source.toml`
-- the resolved child config
-- source repo URL when available
-- git commit
-- git dirty status
-- any saved patch files for dirty runs
+## Comparing Results
 
-That is the mechanism that prevents experiments from being lost while still
-making fork-shared runs traceable.
+Results are grouped by dataset and clearly labeled with their deployment target and run profile. The `compare` command will not silently mix short and full runs or collapse results from different targets, so accelerated, CPU-fallback, and FPGA-targeted runs stay distinguishable.
 
-## Comparison And Test Expectations
+## CLI Reference
 
-Comparison should stay dataset-aware, profile-aware, and deployment-track-aware:
-
-- never silently mix `short` and `full`
-- never silently collapse `numbers` and `fashion`
-- clearly label accelerated-target, CPU-targeted, and FPGA-targeted runs
-- clearly label requested runtime, resolved backend, and CPU-fallback runs
-
-FPGA-targeted comparisons use two tiers of validation:
-
-- shared smoke validation checks export, load, inference-artifact presence, and
-  target compatibility
-- promotion-grade FPGA decisions add a hardware gate covering export operator
-  whitelist compatibility, quantization or calibration validity, latency budget
-  compliance, and resource or utilization budget compliance when hardware
-  reports it
-
-Implementation work should include contract tests for:
-
-- scaffolding and base-version creation
-- inheritance and track validation
-- train-runtime versus deploy-target separation
-- dataset preparation idempotency
-- short-run milestone resolution
-- artifact production
-- comparison behavior across datasets, profiles, tracks, and fallback states
-
-## Planned CLI Surface
-
-These are the intended commands:
+All available commands:
 
 ```bash
 uv run python -m cnn_workbench.cli.doctor
-uv run python -m cnn_workbench.cli.build
+uv run python -m cnn_workbench.cli.build --experiment 102_accelerated_wider_model
 uv run python -m cnn_workbench.cli.new_experiment --parent 100_accelerated_base_v1 --slug wider_model
 uv run python -m cnn_workbench.cli.new_experiment --parent 200_fpga_base_v1 --slug int8_shift_activation
 uv run python -m cnn_workbench.cli.new_experiment --parent 300_cpu_base_v1 --slug cpu_debug_profile
@@ -939,79 +590,13 @@ uv run python -m cnn_workbench.cli.compare --experiments 100_accelerated_base_v1
 uv run python -m cnn_workbench.cli.prepare_datasets numbers fashion
 ```
 
-Command expectations:
+## Task Aliases
 
-- `doctor` verifies environment compatibility and reports actionable fixes.
-- `build` uses environment-scoped bootstrap and build roots so Docker CUDA and
-  native-host artifacts do not overwrite each other.
-- `build` uses the project-wide LibTorch lock file, verifies archive checksums,
-  and rebuilds only when the build fingerprint changes.
-- `new_experiment` scaffolds the folder, config, and notes template using the
-  next available id in the current repo track.
-- `new_experiment` also includes commented starter overrides for common edits.
-- `check` is the normal pre-run validation step.
-- `resolve` is the normal pre-run inspection step and stays pure unless
-  `--ensure-datasets` is requested.
-- `run_local` resolves, prepares datasets, launches the batch, and writes
-  artifacts.
-- `run_local` reruns the same blocking checks as `check`.
-- `run_local` may fall back from requested accelerated training to CPU only for
-  short local runs, and that fallback must remain visible in artifacts.
-- `compare` reads completed batch artifacts only.
-- `prepare_datasets` prepares named datasets without launching training.
-
-The C++ trainer should stay narrow:
+Optional `make` shortcuts for common commands:
 
 ```bash
-cnnwb_train --resolved-config <path> --output-dir <path>
-```
-
-## Task Aliases And CI
-
-Optional task aliases should stay thin wrappers over the canonical Python CLI
-entrypoints. The intended examples are:
-
-```bash
-make build
+make build EXPERIMENT=102_accelerated_wider_model
 make check EXPERIMENT=102_accelerated_wider_model
 make test
 make compare EXPERIMENTS="100_accelerated_base_v1 102_accelerated_wider_model"
 ```
-
-The minimum tracked CI surface is at least one workflow under
-`.github/workflows/` that runs `make test`.
-
-Canonical IDs: REQ-008, CON-008, R3, R9
-
-## Documentation Review Checklist
-
-Before implementation, this README should still feel correct to a new user:
-
-- Can a user tell which base to extend?
-- Is it obvious when to create a new base version instead of editing an old
-  base?
-- Are the supported CUDA-container and native-MPS paths clear enough that
-  environment problems fail in `doctor` instead of deep in the build?
-- Is the CPU training path clear enough for one-image-at-a-time experimentation?
-- Is `resolve` clearly part of the normal workflow?
-- Is `check` clearly part of the normal workflow?
-- Is it obvious when config is enough and when shared C++ code is required?
-- Is training behavior covered by named config sections instead of implied code
-  edits?
-- Is the runtime source of truth clear enough that a user is not choosing both a
-  training runtime and a separate device flag?
-- Is the deploy-target model called out explicitly enough for accelerated, CPU,
-  and FPGA targets?
-- Is the commit workflow clear enough that experiments are not lost?
-
-If the answer to any of these is no, update `plan.md` first, then update this
-README, and only then implement code.
-
-Now also confirm the canonical planning layer is still aligned:
-
-- did the changed rule update the relevant `REQ-*`, `CON-*`, `ASM-*`, `UNK-*`,
-  or `R*` entry first?
-- if the rationale changed, did the related ADR change too?
-- did `plans/trace/trace.csv` and `plans/trace/coverage.md` stay current?
-
-Canonical IDs: REQ-014, REQ-015, REQ-018, ACC-007, CON-009

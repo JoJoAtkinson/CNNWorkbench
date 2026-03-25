@@ -1,10 +1,10 @@
 # CNN Workbench Plan
 
-This project uses one canonical LibTorch training runner. Local execution comes
-first, and Azure pipeline support comes second without changing the core runner
-contract. The design goal is to keep the same experiment model, resolved run
-shape, and output artifacts whether training is launched on a laptop or
-submitted to Azure.
+This project uses a shared LibTorch training framework with per-experiment
+model binaries. Local execution comes first, and Azure pipeline support comes
+second without changing the core runner contract. The design goal is to keep
+the same experiment model, resolved run shape, and output artifacts whether
+training is launched on a laptop or submitted to Azure.
 
 Delivery sequencing lives in `plan-stages.md`. Detailed per-stage plans live
 under `plans/stages/`. This file stays focused on the full target design and
@@ -21,9 +21,11 @@ Canonical IDs: REQ-014, REQ-015, REQ-018, CON-005
 
 ## Core Decisions
 
-- Experiments are config-first, not per-experiment C++ subclasses.
+- Experiments are config-first for training and execution behavior, but each
+  experiment owns a `model.cpp` that defines its architecture.
 - The Python-resolved child config is the single source of truth for runtime
-  defaults, inheritance, dataset selection, and environment-specific values.
+  defaults, inheritance, dataset selection, and environment-specific values,
+  but not for model architecture.
 - CUDA-capable Windows/Linux environments should use Docker as the canonical
   local execution path so host toolchain differences fail early and
   reproducibly.
@@ -103,6 +105,8 @@ Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-007, REQ-013, CON-001, CON-003, CO
   - Git-tracked experiment definitions for the current repo.
   - the upstream repo keeps a curated subset of community work rather than
     mirroring every fork
+  - each experiment folder contains `experiment.toml`, `model.cpp`, and
+    `notes.md`
 - `configs/datasets.toml`
   - Shared dataset catalog keyed by logical dataset name.
 - `configs/libtorch.lock.toml`
@@ -123,7 +127,7 @@ Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-007, REQ-013, CON-001, CON-003, CO
     `third_party/libtorch/<platform_tag>/`.
 - `build/`
   - Ignored local CMake output such as
-    `build/<platform_tag>/bin/cnnwb_train`.
+    `build/<platform_tag>/<experiment_id>/bin/cnnwb_train`.
 - `src/cnn_workbench/`
   - Python orchestration package for bootstrap, scaffolding, resolve, local run,
     comparison, and later Azure submission.
@@ -203,10 +207,16 @@ Required shared models:
 
 - `ExperimentConfig`
   - typed representation of one authored `experiment.toml`
-  - validates all 15 required sections: `experiment`, `metadata`, `runtime`,
-    `batch`, `model`, `optimizer`, `scheduler`, `loss`, `train`, `train_loop`,
-    `checkpoint`, `initialization`, `short_run`, `quantization`, `deployment`
+  - validates the canonical Phase 1 authored sections:
+    `experiment`, `metadata`, `runtime`, `batch`, `optimizer`, `scheduler`,
+    `loss`, `train`, `train_loop`, `checkpoint`, `initialization`,
+    `short_run`, and `deployment`
+  - base experiments also author `track`; derived experiments inherit it
   - all fields are mandatory from Stage 1; no deferred fields
+- `ExperimentModelSource`
+  - typed metadata for one authored `model.cpp`
+  - validates that each tracked experiment has exactly one architecture source
+    file alongside `experiment.toml`
 - `DatasetSpec`
   - dataset catalog entry plus discovered runtime metadata
 - `ResolvedChildRun`
@@ -242,6 +252,8 @@ Ownership rules:
   depend on the same domain contracts rather than passing raw nested dicts
 - the resolved child run is the machine-facing unit of execution
 - the authored experiment folder remains the human-facing source of truth
+- the authored experiment folder includes both training/runtime TOML and the
+  sibling `model.cpp` architecture source
 - one distributed node or local worker should receive one `ResolvedChildRun`,
   not a partially resolved authored experiment
 
@@ -262,7 +274,7 @@ install, and a project-owned build step:
   - use `uv` to install or select the project Python toolchain
   - run `uv sync`
   - print the correct next action for the environment, typically `doctor`
-    followed by `build` on train-capable hosts
+    followed by `build --experiment <id>` on train-capable hosts
   - stop short of pretending compiler, Docker, CUDA, or MPS requirements are
     solved if they are not; those remain `doctor`-validated prerequisites
 
@@ -272,11 +284,12 @@ install, and a project-owned build step:
   - verifies host or container compatibility before any expensive build work
 - `uv sync`
   - installs Python dependencies from `pyproject.toml`
-- `uv run python -m cnn_workbench.cli.build`
+- `uv run python -m cnn_workbench.cli.build --experiment <id>`
   - downloads the correct LibTorch package into
     `third_party/libtorch/<platform_tag>/`
   - configures the C++ trainer with CMake
-  - builds the trainer binary at `build/<platform_tag>/bin/cnnwb_train`
+  - builds the selected experiment binary at
+    `build/<platform_tag>/<experiment_id>/bin/cnnwb_train`
   - reuses existing bootstrap artifacts when possible instead of redownloading
     or rebuilding blindly
   - keeps CUDA-container and native-host bootstrap artifacts separate so one
@@ -298,19 +311,20 @@ LibTorch lock and update policy:
 CMake and rebuild contract:
 
 - the minimum supported CMake version is `3.26`
-- the canonical trainer target name is `cnnwb_train`
+- the per-experiment trainer entrypoint remains `cnnwb_train`
 - Phase 1 must support at least `Debug`, `RelWithDebInfo`, and `Release`
   build types
 - stale-binary detection uses
-  `build/<platform_tag>/build_fingerprint.json`
+  `build/<platform_tag>/<experiment_id>/build_fingerprint.json`
 - the build fingerprint must include:
   - all `cpp/**` source files
+  - the selected experiment's `model.cpp`
   - top-level `CMakeLists.txt` plus any tracked CMake configuration files
   - `platform_tag`, compiler or toolchain identity, and selected build type
   - `configs/libtorch.lock.toml`
   - runtime artifact schema-version constants used by the trainer boundary
-- authored experiment config changes must not participate in the build
-  fingerprint; config-only changes do not trigger a rebuild
+- `experiment.toml` training and execution changes must not participate in the
+  build fingerprint; TOML-only changes do not trigger a rebuild
 - if the stored fingerprint differs from the current fingerprint, `build` must
   reconfigure and rebuild automatically
 
@@ -492,8 +506,10 @@ Rules:
 - `experiment.id` must equal the folder name.
 - `000_template` is reserved and not directly runnable.
 - Every tracked experiment, including bases, requires `notes.md`.
-- Derived experiments should be minimal override files. Do not copy the full
-  parent config into a child experiment.
+- Every tracked experiment, including bases, requires `model.cpp`.
+- Non-base experiments extend a base rather than another non-base experiment.
+- Non-base experiments keep an explicit `model.cpp` copied from that base so
+  model structure is readable in the experiment itself.
 - Finished experiments are immutable.
 - Finished bases are immutable.
 - A new common pattern should become a new base version, not a patch to an old
@@ -567,18 +583,26 @@ Merge rules:
 - Unknown sections or keys are validation errors.
 - Circular inheritance is a validation error.
 - Missing parents are validation errors.
+- Base versions may extend earlier bases or `000_template`, but non-base
+  experiments always extend a base.
+- Scaffolded non-base experiments intentionally materialize `model.cpp`
+  instead of inheriting architecture only implicitly.
 
 Important authoring rule:
 
-- Authored experiment configs should not use raw ordered layer arrays to define
-  architecture because array replacement breaks the minimal-override design.
-- Use named stage tables such as `[model.stage1]`, `[model.stage2]`, and
-  `[model.stage3]` in source experiment files.
-- The resolved config may materialize explicit stage order or layer arrays if
-  that simplifies trainer construction, because inheritance no longer applies at
-  runtime.
+- Authored `experiment.toml` should not define model architecture.
+- Use `model.cpp` to make stage composition, dimensions, block counts, and
+  quantization choices explicit in source.
+- Shared library code defines reusable block internals, connection patterns,
+  and low-level math rather than turning TOML into a graph language.
+- Later base changes should not silently rewrite the scaffolded `model.cpp` of
+  an existing experiment.
+- The resolved config excludes model graph structure because inheritance no
+  longer applies to compiled architecture at runtime.
 
 These rules apply identically for local and Azure launch paths.
+
+Canonical IDs: REQ-001, REQ-020, REQ-021, CON-013, CON-014, CON-015
 
 ## Scaffolding Workflow
 
@@ -591,13 +615,16 @@ cnn_workbench.cli.new_experiment --parent 100_accelerated_base_v1 --slug wider_m
 Required behavior:
 
 - validates the parent experiment exists
+- requires non-base experiments to choose a base parent
 - infers the track from the parent
 - chooses the next available experiment id in the same track within the current
   repo checkout
 - creates `experiments/<id>/`
 - writes `experiment.toml`
-- writes commented starter override blocks for common edits such as `train`,
-  `model.stage*`, and `short_run`
+- copies the selected base `model.cpp` into the new experiment so architecture
+  is explicit from the start
+- writes commented starter override blocks for common non-architecture edits
+  such as `train` and `short_run`
 - writes `notes.md` from a template
 
 Experiment id allocation rules:
@@ -656,21 +683,6 @@ The canonical Phase 1 authored schema is:
 - `[batch]`
   - `dataset_targets`
   - `stop_on_failure`
-- `[model]`
-  - `backbone`
-  - `head`
-  - `block`
-  - `norm`
-  - `activation`
-  - `width`
-  - `depth`
-  - `dropout`
-- `[model.stage1]`, `[model.stage2]`, `[model.stage3]`, ...
-  - `enabled`
-  - `out_channels`
-  - `blocks`
-  - `stride`
-  - `pool`
 - `[optimizer]`
   - `name`
   - `learning_rate`
@@ -707,11 +719,6 @@ The canonical Phase 1 authored schema is:
   - `schedule`
   - `base_items`
   - `explicit_eval_items`
-- `[quantization]`
-  - `mode`
-  - `weight_bits`
-  - `activation_bits`
-  - `fake_quant`
 - `[deployment]`
   - `export_profile`
   - `validate_target_inference`
@@ -723,9 +730,27 @@ changing:
 - loss behavior
 - checkpoint initialization behavior
 - train-loop behavior
-- stage-level model structure
-- quantization strategy
 - deployment-target constraints
+
+Config boundary rule:
+
+- config is the right place for epochs, dataset targets, runtime intent,
+  deployment target, optimizer, scheduler, loss, train-loop, checkpoint, and
+  deployment settings
+- config is not the place for model graph structure, stage layout, activation
+  or normalization selection, quantization settings, or arbitrary
+  layer-by-layer graph authoring
+- those architecture details stay in `model.cpp` plus the shared C++ library so
+  contributors can inspect and modify real model behavior without turning the
+  schema into a programming language
+
+Per-experiment architecture surface:
+
+- every experiment folder includes `model.cpp`
+- `model.cpp` defines stage composition, dimensions, block counts, strides,
+  head shape, activation or normalization choices, and quantization behavior
+- the shared C++ library provides parameterized building blocks with no magic
+  numbers
 
 Runtime source-of-truth rule:
 
@@ -733,6 +758,8 @@ Runtime source-of-truth rule:
 - authored experiments should not also choose a separate `train.device`
 - Python may derive trainer-facing backend arguments from `runtime`, but the
   authored config should expose only one runtime selector
+
+Canonical IDs: REQ-001, REQ-019, REQ-020, CON-002, CON-013, CON-014
 
 ## Canonical Roots And Defaults
 
@@ -757,30 +784,6 @@ train_runtime = "accelerated"
 [batch]
 dataset_targets = ["numbers", "fashion"]
 stop_on_failure = true
-
-[model]
-backbone = "staged_cnn"
-head = "linear_head"
-block = "conv_bn_relu"
-norm = "batch_norm"
-activation = "relu"
-width = 32
-depth = 2
-dropout = 0.0
-
-[model.stage1]
-enabled = true
-out_channels = 32
-blocks = 2
-stride = 1
-pool = "max2"
-
-[model.stage2]
-enabled = true
-out_channels = 64
-blocks = 2
-stride = 1
-pool = "max2"
 
 [optimizer]
 name = "adam"
@@ -826,16 +829,13 @@ schedule = "fibonacci"
 base_items = 250
 explicit_eval_items = []
 
-[quantization]
-mode = "none"
-weight_bits = 32
-activation_bits = 32
-fake_quant = false
-
 [deployment]
 export_profile = "none"
 validate_target_inference = false
 ```
+
+The template also carries a `model.cpp` that defines the default staged CNN
+architecture used as the starting point for new bases and experiments.
 
 Optimizer documentation requirement:
 
@@ -885,20 +885,14 @@ train_runtime = "accelerated"
 deploy_target = "fpga"
 constraints_profile = "fpga_int8_v1"
 
-[model]
-activation = "shift_activation"
-norm = "barrel_shift_norm"
-
-[quantization]
-mode = "qat_int8"
-weight_bits = 8
-activation_bits = 8
-fake_quant = true
-
 [deployment]
 export_profile = "fpga_int8_v1"
 validate_target_inference = true
 ```
+
+The FPGA base `model.cpp` changes the shared model composition to use the
+FPGA-compatible activation, normalization, and quantization behavior required
+by the profile.
 
 ### `300_cpu_base_v1`
 
@@ -950,7 +944,8 @@ The configuration boundary is:
 
 Python resolves those inputs into one fully materialized child config per
 dataset child run. The resolved child config is the only configuration file
-consumed by the C++ trainer.
+consumed by the per-experiment C++ trainer at runtime; model architecture is
+already compiled into that binary.
 
 Python contract rules:
 
@@ -997,18 +992,6 @@ Required resolved sections:
   - `sentinel` if configured
   - `input_channels`
   - `num_classes`
-- `[model]`
-  - `backbone`
-  - `head`
-  - `block`
-  - `norm`
-  - `activation`
-  - `width`
-  - `depth`
-  - `dropout`
-  - `stage_order`
-- `[model.stage1]`, `[model.stage2]`, ...
-  - stage parameters after inheritance resolution
 - `[optimizer]`
   - `name`
   - `learning_rate`
@@ -1039,11 +1022,6 @@ Required resolved sections:
   - `load_optimizer_state`
   - `load_scheduler_state`
   - `strict_model_load`
-- `[quantization]`
-  - `mode`
-  - `weight_bits`
-  - `activation_bits`
-  - `fake_quant`
 - `[deployment]`
   - `export_profile`
   - `validate_target_inference`
@@ -1052,7 +1030,9 @@ Required resolved sections:
   - `eval_items`
 
 The resolved config may include additional metadata later, but these sections
-are the minimum contract for Phase 1.
+are the minimum contract for Phase 1. It does not include model graph
+structure, quantization settings, or stage composition because those belong to
+the compiled experiment `model.cpp`.
 
 Execution-mode rules:
 
@@ -1176,7 +1156,7 @@ Checkpoint compatibility criteria:
 
 - `model_state` key must exist in the checkpoint
 - when `strict_model_load = true`: `model_backbone` in the checkpoint must
-  match `model.backbone` in the resolved config
+  match the compiled experiment model definition
 - when `mode = "resume"` and `load_optimizer_state = true`: `optimizer_state`
   key must exist in the checkpoint
 - when `mode = "resume"` and `load_scheduler_state = true`: `scheduler_state`
@@ -1312,9 +1292,10 @@ The C++ trainer remains narrow:
 cnnwb_train --resolved-config <path> --output-dir <path>
 ```
 
-The trainer reads only the resolved child config plus the output directory. It
-does not reapply experiment inheritance, guess datasets, or maintain a
-competing set of behavior defaults.
+The trainer reads only the resolved child config plus the output directory. The
+selected experiment binary already contains that experiment's `model.cpp` and
+the shared C++ model library; it does not reapply experiment inheritance, guess
+datasets, or maintain a competing set of behavior defaults.
 
 Input strictness rule:
 
@@ -1363,11 +1344,6 @@ hardcoded string switches spread across the trainer.
 
 Required registry families:
 
-- backbones
-- heads
-- blocks
-- norms
-- activations
 - losses
 - train loops
 - optimizers
@@ -1380,6 +1356,9 @@ Optimizer registry note:
 - optimizer registration docs should show contributors how to add a second
   optimizer without changing the trainer loop or hiding behavior inside a model
   path
+- model composition helpers may use ordinary shared-library code rather than
+  config-facing registries because experiment `model.cpp` files call those
+  helpers directly
 
 Recommended pattern:
 
@@ -1392,6 +1371,13 @@ Recommended pattern:
   not leak into every component
 - registration happens in one obvious bootstrap path under `cpp/registries/`
 - trainer startup fails fast if a requested component is missing
+- backbone code should make stage composition obvious rather than hiding model
+  shape inside long opaque sequential chains
+- block code should make the internal layer order and connection pattern obvious
+  enough that contributors can modify block math without searching unrelated
+  trainer code
+- experiment `model.cpp` files should remain readable production artifacts
+  rather than thin wrappers around a second config interpreter
 
 Coupling rule:
 
@@ -1402,18 +1388,21 @@ Coupling rule:
 
 ### Phase 1 Built-Ins
 
-Phase 1 requires at least these reusable built-ins:
+Phase 1 requires at least these shared model-library primitives:
 
-- `staged_cnn`
-  - default general-purpose backbone
-- `linear_head`
-  - standard classifier head
+- `make_stage`
+  - reusable stage builder with explicit dimensions and block counts
 - `conv_bn_relu`
-  - default general-purpose block
+  - default general-purpose block implementation
 - `batch_norm`
-  - default general-purpose norm
+  - default general-purpose normalization helper
 - `relu`
-  - default general-purpose activation
+  - default general-purpose activation helper
+- `linear_head`
+  - standard classifier head helper
+
+Phase 1 also requires these config-driven runtime built-ins:
+
 - `cross_entropy`
   - default loss
 - `supervised_classifier`
@@ -1441,22 +1430,27 @@ Optimizer exposure rules:
 
 Important relationship:
 
-- built-ins such as `staged_cnn`, `conv_bn_relu`, `batch_norm`, and `relu`
-  define reusable implementation families in shared code
+- shared model primitives such as `make_stage`, `conv_bn_relu`, `batch_norm`,
+  and `relu` define reusable implementation in shared code
 - base experiments such as `100_accelerated_base_v1`, `200_fpga_base_v1`, and
-  `300_cpu_base_v1` own the
-  selected defaults and stage-level structure for a track
-- derived experiments should usually change stage tables or named components in
-  config, not replace the entire implementation family
+  `300_cpu_base_v1` own the starting `model.cpp` and training defaults for a
+  track
+- derived experiments should usually change their copied `model.cpp` or
+  training TOML, not replace the shared library
+- experiment `model.cpp` files choose how to compose shared primitives, while
+  the shared library defines the real block internals and layer order
 - when a broad architecture discovery should become standard for future work,
   create a new base version instead of mutating the old base
+
+Canonical IDs: REQ-001, REQ-019, CON-003, CON-013
 
 The FPGA track may add shared components such as:
 
 - `shift_activation`
 - `barrel_shift_norm`
 - `qat_int8`
-- FPGA-specific blocks or backbones derived from the inspiration profile
+- FPGA-specific blocks, stage helpers, or backbones derived from the
+  inspiration profile
 
 These are still shared reusable components, not per-experiment forks.
 
@@ -1720,6 +1714,9 @@ Each child dataset run must include:
 Successful child runs must also include:
 
 - `metrics.csv`
+- `tensorboard/`
+  - Python-generated TensorBoard event logs derived from trainer-written raw
+    metrics
 - `checkpoints/best.pt`
 - `checkpoints/last.pt`
 
@@ -1742,6 +1739,15 @@ Artifact schema compatibility policy:
 - readers must accept older minor versions within the same major when the
   required fields they consume are still present
 - readers may reject unknown major versions explicitly with an actionable error
+
+Derived visualization artifact policy:
+
+- TensorBoard event logs are convenience outputs generated by Python from
+  canonical runtime artifacts such as `metrics.csv` and `summary.json`
+- TensorBoard event logs are not the canonical review surface and do not
+  replace the text-first artifact contract
+- TensorBoard event logs may be regenerated when the canonical raw artifacts
+  are still present
 
 Minimum Phase 1 versioned artifacts:
 
@@ -1793,6 +1799,12 @@ folder, such as `git_diff_working.patch` and `git_diff_staged.patch`.
 - `accuracy`
 - `examples`
 - `duration_seconds`
+
+TensorBoard projection rule:
+
+- Python is responsible for reading `metrics.csv` and writing TensorBoard event
+  logs for visualization
+- the C++ trainer does not write TensorBoard event files directly
 
 `summary.json` minimum fields:
 
@@ -1868,9 +1880,8 @@ Deployment smoke-validation criteria:
 - `export_ok`: checkpoint file (`best.pt`) exists
 - `load_ok`: checkpoint file is parseable
 - `inference_ok`: `metrics.csv` exists
-- `target_compatible`: for FPGA targets, validates `quantization.mode`,
-  `weight_bits`, `activation_bits`, `fake_quant`, `export_profile`,
-  `model.activation`, and `model.norm` match the `fpga_int8_v1` profile; for
+- `target_compatible`: for FPGA targets, validates the experiment `model.cpp`
+  plus `deployment.export_profile` satisfy the `fpga_int8_v1` profile; for
   non-FPGA targets, always `true`
 - `passed`: all four criteria must be `true`
 
@@ -1929,7 +1940,7 @@ The resolver, scaffolder, and launcher should fail fast on:
   matrix-generated overrides
 - unknown sections or keys
 - invalid types for known keys
-- authored raw `model.layers` arrays in source experiment configs
+- authored TOML model or quantization sections in source experiment configs
 - non-base experiments overriding `track`
 - cross-track inheritance, such as an accelerated-target chain extending an
   FPGA-targeted base or a CPU-targeted chain extending an accelerated-target
@@ -1943,11 +1954,8 @@ The resolver, scaffolder, and launcher should fail fast on:
 
 The trainer should fail fast on:
 
-- unknown registered `model.backbone`
-- unknown registered `model.head`
-- unknown registered `model.block`
-- unknown registered `model.norm`
-- unknown registered `model.activation`
+- missing shared model primitive or helper referenced by the experiment
+  `model.cpp`
 - unknown registered `loss.name`
 - unknown registered `train_loop.name`
 - unknown registered `optimizer.name`
@@ -2049,7 +2057,8 @@ Implementation constraints:
 - launch gating should flow through `policies/` instead of each command
   duplicating environment and git checks
 - Python remains responsible for experiment expansion, matrix generation,
-  checkpoint resolution, and artifact bookkeeping
+  checkpoint resolution, artifact bookkeeping, and TensorBoard event-log
+  generation from trainer-owned raw metrics
 - the LibTorch C++ binary remains a narrow execution engine that consumes one
   resolved child config at a time
 

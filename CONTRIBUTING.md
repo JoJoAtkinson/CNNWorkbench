@@ -79,30 +79,45 @@ Use the narrowest layer that fits the change.
 Cost and iteration tradeoff:
 
 - config changes are the lowest-cost contribution surface
+- per-experiment `model.cpp` edits are the natural path for architecture
+  changes because they stay inside the experiment and require only a
+  per-experiment rebuild
 - Python orchestration changes are the next-cheapest path because they do not
   require rebuilding the C++ trainer
-- C++ model or math changes are the heaviest path because they require code
-  changes, registry wiring where applicable, rebuild, and trainer-facing
-  validation
+- shared C++ library changes are the heaviest path because they require code
+  changes, rebuild, and validation across every experiment that uses the
+  changed primitive
 - choose the heavier path only when the behavior truly belongs in the shared
-  execution or low-level math layer
+  library or low-level math layer
 
 Use config when changing:
 
-- training settings
-- optimizer or scheduler selection
-- stage-level model structure
-- loss, train-loop, quantization, or deployment options already exposed in the
-  schema
+- training settings such as epochs, batch size, and hyperparameters
+- optimizer or scheduler selection and tuning
+- loss, train-loop, or deployment options already exposed in the schema
+- dataset targets and checkpoint behavior
 
-Use shared code when changing:
+Use per-experiment `model.cpp` when changing:
 
-- a new reusable backbone, head, block, norm, activation, optimizer, scheduler,
-  or train loop
+- stage composition, channel widths, block counts, or strides
+- block family selection at each architecture level
+- activation, normalization, or quantization choices that define the model graph
+- head configuration
+
+Use shared C++ library code when changing:
+
+- a new reusable block, norm, activation, optimizer, scheduler, or train loop
+  primitive
 - low-level arithmetic such as quantizers, shift activations, or FPGA-oriented
   normalization
+- parameterized layer or connection-pattern implementations
+
+Use Python orchestration code when changing:
+
 - orchestration behavior shared across `check`, `resolve`, `run_local`, or
   `compare`
+- scaffolding workflow or config resolution logic
+- dataset preparation or input shaping
 
 Boundary routing examples:
 

@@ -6,15 +6,15 @@ implementation-side CI surface for planning artifacts.
 
 ## Summary
 
-- Accepted requirements: 18
-- Accepted constraints: 12
+- Accepted requirements: 22
+- Accepted constraints: 16
 - Active collaboration risks: 10
 - Open unknowns: 4
 - Open blocking unknowns: 0
-- ADRs: 6 accepted, 0 superseded, 0 proposed
-- Acceptance IDs: 7
+- ADRs: 10 accepted, 0 superseded, 0 proposed
+- Acceptance IDs: 9
 
-Canonical IDs: REQ-018, CON-009, ACC-007
+Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, CON-009, CON-013, CON-014, CON-015, CON-016, ACC-007, ACC-008, ACC-009
 
 ## Coverage Status
 
@@ -24,6 +24,14 @@ Canonical IDs: REQ-018, CON-009, ACC-007
 - Accepted constraints without verification target: none
 - Stage plans missing coverage sections: none after this planning-layer pass
 - Collaboration risks without mapped owning stages: none
+- Model-structure boundary coverage: `REQ-019`, `CON-013`, `ADR-0007`, and
+  `ACC-008` are all linked through Stage 5
+- Experiment-owned model-definition coverage: `REQ-020`, `CON-014`,
+  `ADR-0008`, and `ACC-009` are all linked through Stage 2
+- Production-portability coverage: `REQ-021`, `CON-015`, `ADR-0009`, and
+  `ACC-009` are linked through Stage 2 and Stage 5
+- TensorBoard projection coverage: `REQ-022`, `CON-016`, `ADR-0010`, and
+  `ACC-004` are linked through Stage 6
 
 Canonical IDs: REQ-016, REQ-018, CON-009
 

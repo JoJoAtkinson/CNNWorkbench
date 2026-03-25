@@ -173,19 +173,21 @@ requirements:
       - plan.md#supported-local-environments
       - plan.md#preflight-and-policy-ownership
   - id: REQ-008
-    title: Canonical Trainer Build Contract
+    title: Per-Experiment Trainer Build Contract
     category: build
     statement: >-
-      When the trainer is built, the workbench shall compile the canonical
-      `cnnwb_train` target into environment-scoped build roots using the pinned
-      LibTorch distribution and fingerprint-based rebuild decisions.
+      When a contributor builds an experiment, the workbench shall compile that
+      experiment's `model.cpp` plus the shared trainer library into an
+      experiment-scoped binary using the pinned LibTorch distribution and
+      fingerprint-based rebuild decisions.
     fit_criterion: >-
-      Stage 5 defines the canonical target name, minimum CMake version,
-      supported build types, environment-scoped build roots, and build
-      fingerprint artifact.
+      Stage 5 defines the per-experiment build contract, minimum CMake version,
+      supported build types, environment-scoped build roots, and a build
+      fingerprint artifact that includes the experiment model source.
     rationale: >-
-      A narrow, repeatable build contract prevents build ownership from leaking
-      into ad hoc local scripts or target-specific repos.
+      A narrow, repeatable per-experiment build contract keeps production-bound
+      model code portable without letting build ownership leak into ad hoc
+      local scripts or target-specific repos.
     priority: high
     owner: build
     status: accepted
@@ -426,3 +428,113 @@ requirements:
     source_refs:
       - plans/trace/coverage.md
       - plans/collaboration-risk-matrix.md
+  - id: REQ-019
+    title: Readable And Extensible Model Structure In Shared Code
+    category: architecture
+    statement: >-
+      When contributors inspect or extend shared model code, the backbone,
+      stages, blocks, and internal layer order shall be visually obvious, and
+      adding a new block family or modifying block math shall stay localized to
+      the relevant shared component and any minimal shared bootstrap wiring.
+    fit_criterion: >-
+      The planning docs define block, layer, stage, and backbone vocabulary;
+      Stage 5 requires readable shared model composition and a clear extension
+      path for adding a second block family; and acceptance artifacts verify
+      that model composition changes route through shared model code rather
+      than hidden trainer rewrites or framework-driven graph generation.
+    rationale: >-
+      Config-first experiment history only remains practical if the shared code
+      stays understandable enough for contributors to change real architecture
+      or math behavior without turning the schema into a programming language.
+    priority: high
+    owner: architecture
+    status: accepted
+    stage_ids:
+      - STAGE-05
+    source_refs:
+      - README.md#how-to-change-behavior
+      - plan.md#phase-1-author-config-surface
+      - plan.md#registry-and-factory-pattern
+      - plans/stages/05_trainer_build_and_vertical_slice/plan.md#deliverables
+  - id: REQ-020
+    title: Experiment-Owned C++ Model Definition
+    category: authoring
+    statement: >-
+      When a contributor scaffolds a non-base experiment, the system shall copy
+      the base experiment's `model.cpp` into the new experiment so the
+      experiment owns an explicit C++ model definition with visible stage
+      composition, dimensions, and architecture-defining quantization choices.
+    fit_criterion: >-
+      Stage 2 scaffold output includes `experiment.toml`, `model.cpp`, and
+      `notes.md`; the copied `model.cpp` is editable in the new experiment; and
+      the acceptance layer proves later base changes do not silently rewrite
+      the architecture of already scaffolded experiments.
+    rationale: >-
+      Reviewers need to see the model structure directly in each experiment,
+      and historical experiments should preserve their own architecture code
+      even when future bases evolve.
+    priority: high
+    owner: authoring
+    status: accepted
+    stage_ids:
+      - STAGE-02
+    source_refs:
+      - README.md#mental-model
+      - README.md#quick-start
+      - plan.md#inheritance-and-merge-semantics
+      - plan.md#scaffolding-workflow
+      - plans/stages/02_authoring_and_resolution/plan.md#deliverables
+  - id: REQ-021
+    title: Production-Portable Model Artifacts
+    category: architecture
+    statement: >-
+      When an experiment is ready to move toward production, the experiment's
+      `model.cpp` plus the shared C++ model library shall remain extractable
+      and compilable without any dependency on Python orchestration, TOML model
+      parsing, or experiment-inheritance logic.
+    fit_criterion: >-
+      ADR-0009 defines the portability boundary, Stage 5 requires
+      per-experiment compilation that links only experiment model code and the
+      shared library, and acceptance artifacts verify the production-portable
+      artifact set excludes TOML-defined architecture knobs.
+    rationale: >-
+      Successful experiments should produce model code that can move into a
+      production repository without carrying the entire experimentation
+      framework with it.
+    priority: high
+    owner: architecture
+    status: accepted
+    stage_ids:
+      - STAGE-02
+      - STAGE-05
+    source_refs:
+      - README.md#how-to-change-behavior
+      - plan.md#trainer-contract
+      - plan.md#registry-and-factory-pattern
+      - plans/decisions/ADR-0009-production-portable-experiment-artifacts.md
+  - id: REQ-022
+    title: Python-Owned TensorBoard Projection
+    category: runtime
+    statement: >-
+      When a training run produces raw metrics, the C++ trainer shall write the
+      canonical raw metrics artifacts, and Python orchestration shall interpret
+      those artifacts and generate TensorBoard event logs for visualization.
+    fit_criterion: >-
+      The artifact contract keeps `metrics.csv` as the trainer-owned raw metrics
+      surface, Stage 6 requires Python to generate TensorBoard event logs from
+      those raw artifacts, and acceptance artifacts verify the TensorBoard logs
+      are derived from C++ metrics rather than written directly by the trainer.
+    rationale: >-
+      Contributors want TensorBoard-style progress monitoring, but the trainer
+      contract should stay portable and text-first while Python continues to
+      own visualization-specific integration.
+    priority: medium
+    owner: runtime
+    status: accepted
+    stage_ids:
+      - STAGE-06
+    source_refs:
+      - README.md#run-artifacts
+      - plan.md#artifact-contract
+      - plan.md#orchestration-boundaries
+      - plans/stages/06_local_scratch_runs/plan.md#scope

@@ -1,13 +1,14 @@
 # Stage 5 Plan: Trainer Build And Minimal Vertical Slice
 
 This stage introduces the C++ source tree, the build command, and the smallest
-real `cnnwb_train` that proves the Python-to-C++ contract works.
+real per-experiment trainer binary that proves the Python-to-C++ contract
+works.
 
 ## Purpose
 
 - turn the planned C++ trainer into a real build target
 - validate the narrow `resolved_config -> trainer -> output-dir` contract
-- establish the registry and family-specific construction pattern
+- establish the shared-library composition pattern plus non-model registries
 - prove the largest single implementation-volume stage without spilling trainer
   semantics back into Python
 
@@ -21,15 +22,19 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 
 - `build` command with CMake configuration and compilation
 - minimum supported CMake version `3.26`
-- canonical trainer target name `cnnwb_train`
 - supported build types `Debug`, `RelWithDebInfo`, and `Release`
-- environment-scoped build roots under `build/<platform_tag>/`
-- build fingerprinting under `build/<platform_tag>/build_fingerprint.json`
+- environment-scoped and experiment-scoped build roots
+- build fingerprinting under
+  `build/<platform_tag>/<experiment_id>/build_fingerprint.json`
 - resolved-config parsing on the C++ side
-- registry bootstrap for required component families
+- experiment `model.cpp` compilation plus shared-library linking
+- registry bootstrap for non-model component families
 - phase 1 built-ins for the default general-purpose path
 - minimum trainer-owned outputs such as `metrics.csv` and checkpoints
 - fast failure for missing registration or obvious shape errors
+- readable shared backbone and block composition that makes stage order, block
+  repetition, and block internals easy to inspect
+- shared-library portability that avoids Python or TOML-parser dependencies
 
 ## Out Of Scope
 
@@ -42,38 +47,51 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 ## Deliverables
 
 - contributors can build the trainer from the repo instead of a reference repo
-- `cnnwb_train --resolved-config <path> --output-dir <path>` works for a tiny
-  fixture
-- adding the second component to a registry family has a clear extension path
+- a per-experiment trainer binary works for a tiny fixture
+- adding the second reusable block family stays localized to shared model code
+- adding the second non-model component to a registry family has a clear
+  extension path
+- reviewers can inspect shared code and clearly see stage composition, block
+  composition, and where block math changes belong
 - Phase 1 establishes one canonical trainer test path: Python-driven binary
   smoke and integration tests against tiny resolved-config fixtures
-- config-only experiment changes do not trigger unnecessary trainer rebuilds
+- training-config-only experiment changes do not trigger unnecessary rebuilds,
+  while `model.cpp` changes do
 
 ## Coverage
 
-- Implements: `REQ-002`, `REQ-008`
-- Constrains: `CON-003`, `CON-006`
-- Verifies: `ACC-003`, `R1`, `R6`, `R8`
+- Implements: `REQ-002`, `REQ-008`, `REQ-019`, `REQ-021`
+- Constrains: `CON-003`, `CON-006`, `CON-013`, `CON-015`
+- Verifies: `ACC-003`, `ACC-008`, `ACC-009`, `R1`, `R6`, `R8`
 
 ## Done Criteria
 
-- `build` produces a working binary from the tracked C++ source tree
+- `build --experiment <id>` produces a working per-experiment binary from the
+  tracked C++ source tree plus that experiment's `model.cpp`
 - the minimal trainer writes the outputs it owns directly
+- the shared code organization makes stage composition, block composition, and
+  block-family extension easy for a reviewer to follow
+- the shared library remains compilable without Python or TOML-parser
+  dependencies
 - missing registered components fail with clear diagnostics
 - rebuild decisions are fingerprint-based and include tracked C++, CMake,
-  toolchain, lock-file, and trainer-boundary schema inputs
+  toolchain, lock-file, trainer-boundary schema inputs, and the selected
+  experiment's `model.cpp`
 
 ## Test Gate
 
 - build tests verifying CMake configuration and binary production
-- tests verifying the CMake floor, canonical target name, and supported build
-  types
+- tests verifying the CMake floor, per-experiment build contract, and supported
+  build types
 - Python-driven trainer smoke tests that invoke the built binary against tiny
   resolved-config fixtures
-- registry lookup failure tests
+- registry lookup failure tests for non-model component families
+- tests or review fixtures proving a second block family can be added through a
+  localized shared component path rather than trainer-loop rewrites
 - tests for minimum metrics and checkpoint outputs
-- tests proving config-only experiment changes do not trigger a rebuild while
-  tracked C++, CMake, lock-file, or schema changes do
+- tests proving training-config-only experiment changes do not trigger a
+  rebuild while tracked C++, CMake, lock-file, schema, or selected `model.cpp`
+  changes do
 - no separate C++ unit-test framework is required in Phase 1; if a lightweight
   C++ harness is added later, it is secondary to the trainer-boundary tests
 
@@ -90,4 +108,4 @@ real `cnnwb_train` that proves the Python-to-C++ contract works.
 - Stage 6 should be able to orchestrate the trainer locally without changing the
   trainer contract.
 
-Canonical IDs: REQ-002, REQ-008, CON-003, CON-006
+Canonical IDs: REQ-002, REQ-008, REQ-019, REQ-021, CON-003, CON-006, CON-013, CON-015

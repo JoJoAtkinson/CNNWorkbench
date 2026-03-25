@@ -18,7 +18,8 @@ training occurs.
 ## Examples
 
 - A contributor scaffolds `102_accelerated_wider_model` from
-  `100_accelerated_base_v1` and receives the next repo-local ID plus `notes.md`.
+  `100_accelerated_base_v1` and receives the next repo-local ID plus
+  `experiment.toml`, `model.cpp`, and `notes.md`.
 - A contributor runs `resolve --diff-from-parent` and sees both the authored
   delta and the resolved runtime effect for each dataset child run.
 - A contributor on an authoring-only machine can still use `new_experiment`,

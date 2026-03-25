@@ -1,4 +1,4 @@
-@ACC-004 @REQ-009 @CON-004 @CON-011 @CON-012
+@ACC-004 @REQ-009 @REQ-022 @CON-004 @CON-011 @CON-012 @CON-016
 Feature: Execute local scratch runs with provenance
   So that short runs are a trustworthy contributor feedback loop
   As a contributor
@@ -20,3 +20,9 @@ Feature: Execute local scratch runs with provenance
     Given a contributor attempts a canonical full run from a dirty git tree
     When the dirty-tree override is not set
     Then the run is rejected according to the documented clean-tree policy
+
+  Scenario: Generate TensorBoard logs from trainer metrics
+    Given a successful local scratch run writes `metrics.csv`
+    When Python completes artifact processing for that child run
+    Then Python writes TensorBoard event logs for the run
+    And those TensorBoard logs are derived from the trainer's raw metrics artifacts

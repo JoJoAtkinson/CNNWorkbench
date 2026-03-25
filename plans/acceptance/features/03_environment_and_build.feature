@@ -19,5 +19,5 @@ Feature: Diagnose environments and build the trainer
 
   Scenario: Avoid unnecessary trainer rebuilds
     Given the trainer has already been built successfully
-    When only authored experiment config changes
+    When only training and execution config changes
     Then the build fingerprint does not force a trainer rebuild

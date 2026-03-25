@@ -7,17 +7,59 @@ these terms consistently in registers, ADRs, stage plans, and contributor docs.
 
 A versioned, immutable experiment root that defines the common defaults for a
 deployment track or experiment family. A base is a tracked source artifact, not
-a runtime output.
+a runtime output, and it is the scaffold source for experiment-owned
+`model.cpp` files.
 
-Canonical IDs: REQ-001, REQ-003, REQ-013, CON-001
+Canonical IDs: REQ-001, REQ-003, REQ-013, REQ-020, CON-001, CON-014
 
 ## Derived Experiment
 
-A tracked experiment folder that extends a base or another experiment and owns a
-specific hypothesis under test. Derived experiments configure shared behavior;
-they do not fork the shared trainer or orchestration layers.
+A tracked experiment folder that extends a base and owns a specific hypothesis
+under test. Derived experiments carry their own `model.cpp`, but they do not
+fork the shared trainer or orchestration layers.
 
-Canonical IDs: REQ-001, REQ-004, CON-001, CON-003
+Canonical IDs: REQ-001, REQ-004, REQ-020, REQ-021, CON-001, CON-003, CON-014, CON-015
+
+## Model Definition File
+
+The experiment-owned `model.cpp` file that defines one experiment's model graph
+using shared C++ primitives and explicit architecture numbers. This file is the
+portable architecture artifact, not `experiment.toml`.
+
+Canonical IDs: REQ-020, REQ-021, CON-013, CON-015
+
+## Backbone
+
+The shared CNN feature extractor implementation used by an experiment model. A
+backbone is the whole structured model body, usually composed of named stages
+that in turn repeat blocks.
+
+Canonical IDs: REQ-019, CON-013
+
+## Stage
+
+A named section of a backbone that repeats one block family a configured number
+of times. In `model.cpp`, a stage is represented by explicit composition code
+and architecture numbers.
+
+Canonical IDs: REQ-019, REQ-020, CON-013
+
+## Block
+
+A reusable composite unit constructed from the shared library and repeated
+within a stage. A block is made of multiple primitive layers and owns the local
+connection pattern for that unit.
+
+Canonical IDs: REQ-019, CON-013
+
+## Layer
+
+A primitive operation inside a block or backbone implementation, such as
+convolution, normalization, activation, or pooling. Layers are implementation
+details of shared code, not the authored source-of-truth structure for
+experiments.
+
+Canonical IDs: REQ-019, CON-013
 
 ## Batch Run
 

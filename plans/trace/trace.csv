@@ -29,11 +29,14 @@ REQ-007,STAGE-04,implemented_in_stage,Environment classification and gating
 REQ-007,ACC-003,verified_by,Environment classification scenarios
 REQ-008,ADR-0002,decided_by,Build consumes the shared runtime contract
 REQ-008,ADR-0004,decided_by,Build follows environment strategy
+REQ-008,ADR-0007,decided_by,Build compiles experiment-owned model code rather than TOML-defined architecture
+REQ-008,ADR-0009,decided_by,Per-experiment binaries preserve production portability
 REQ-008,STAGE-04,implemented_in_stage,Libtorch bootstrap and platform selection
-REQ-008,STAGE-05,implemented_in_stage,CMake build and fingerprinting
+REQ-008,STAGE-05,implemented_in_stage,CMake build and fingerprinting for per-experiment binaries
 REQ-008,ACC-003,verified_by,Build scenarios
 REQ-009,ADR-0002,decided_by,Run execution consumes resolved child runs
 REQ-009,ADR-0006,decided_by,Run artifacts stay text-first and versioned
+REQ-009,ADR-0010,decided_by,Runtime artifact processing includes Python-owned TensorBoard projection
 REQ-009,STAGE-06,implemented_in_stage,Local scratch execution and artifact writing
 REQ-009,ACC-004,verified_by,Local run scenarios
 REQ-010,ADR-0002,decided_by,Initialization is part of the resolved contract
@@ -69,6 +72,21 @@ REQ-018,ADR-0006,decided_by,Checksum report is a text-first planning artifact
 REQ-018,STAGE-01,implemented_in_stage,Coverage report introduced in planning layer
 REQ-018,STAGE-08,implemented_in_stage,Report-oriented stage deepens review surfaces
 REQ-018,ACC-007,verified_by,Coverage report scenario
+REQ-019,ADR-0007,decided_by,Model readability boundary is explicit
+REQ-019,ADR-0003,decided_by,Shared code owns trainer-side model and optimizer internals
+REQ-019,STAGE-05,implemented_in_stage,Trainer code must keep stage and block structure easy to inspect
+REQ-019,ACC-008,verified_by,Model structure boundary scenarios
+REQ-020,ADR-0008,decided_by,Experiments own explicit C++ model definitions
+REQ-020,STAGE-02,implemented_in_stage,Scaffolded experiments receive copied model.cpp files from a base
+REQ-020,ACC-009,verified_by,Experiment model definition scenarios
+REQ-021,ADR-0007,decided_by,Architecture and quantization move out of TOML
+REQ-021,ADR-0009,decided_by,Experiment model artifacts stay production-portable
+REQ-021,STAGE-02,implemented_in_stage,Scaffolding establishes the portable artifact boundary
+REQ-021,STAGE-05,implemented_in_stage,Build compiles portable experiment model artifacts
+REQ-021,ACC-009,verified_by,Production-portable model artifact scenarios
+REQ-022,ADR-0010,decided_by,Python projects trainer metrics into TensorBoard event logs
+REQ-022,STAGE-06,implemented_in_stage,Local scratch runs generate TensorBoard event logs from raw trainer metrics
+REQ-022,ACC-004,verified_by,Runtime artifact scenarios include TensorBoard projection
 CON-001,ADR-0001,decided_by,Config-first history depends on immutable roots
 CON-001,ACC-001,verified_by,Authoring scenarios preserve template and experiment history
 CON-002,ADR-0001,decided_by,Config-first experiments keep deploy and runtime intent explicit
@@ -92,6 +110,22 @@ CON-010,ACC-006,verified_by,FPGA profile independence scenario
 CON-011,ADR-0005,decided_by,Curated promotion model depends on git-level provenance
 CON-011,ACC-004,verified_by,Local run provenance scenario
 CON-012,ACC-004,verified_by,Clean-tree full-run policy scenario
+CON-013,ADR-0007,decided_by,Config selects while shared code defines
+CON-013,ACC-008,verified_by,Model structure boundary scenarios
+CON-014,ADR-0008,decided_by,Non-base experiments stay base-rooted
+CON-014,ACC-009,verified_by,Experiment model definition scenarios
+CON-015,ADR-0009,decided_by,Portable model code excludes framework dependencies
+CON-015,ACC-009,verified_by,Production-portable model artifact scenarios
+CON-016,ADR-0010,decided_by,TensorBoard logs remain derived visualization artifacts
+CON-016,ACC-004,verified_by,Runtime artifact scenarios keep TensorBoard derived
+ADR-0007,ADR-0001,refines,Narrows the broad config-first experiment decision for model structure
+ADR-0007,ADR-0003,refines,Makes the trainer-side model and optimizer implementation boundary explicit
+ADR-0008,ADR-0001,refines,Makes experiment-local architecture ownership explicit inside the config-first model
+ADR-0008,ADR-0007,refines,Pairs shared-code structure rules with experiment-local model definitions
+ADR-0009,ADR-0007,refines,Makes production portability the rationale for the architecture boundary
+ADR-0009,ADR-0008,refines,Makes experiment-owned model files portable beyond the workbench
+ADR-0010,ADR-0003,refines,Keeps TensorBoard projection on the Python side of the runtime boundary
+ADR-0010,ADR-0006,refines,Keeps TensorBoard logs derived instead of canonical
 R1,STAGE-01,verified_by,Foundation documents the canonical bootstrap path
 R1,STAGE-04,verified_by,Environment bootstrap and doctor stay deterministic
 R1,STAGE-05,verified_by,Build contract remains repeatable

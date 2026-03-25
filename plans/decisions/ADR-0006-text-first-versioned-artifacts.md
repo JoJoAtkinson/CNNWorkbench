@@ -19,6 +19,9 @@ for explanation, with neither replaced by opaque binary state.
 ## Consequences
 
 - Artifact schemas and report shapes need explicit version policy.
+- Derived visualization outputs such as TensorBoard event logs may exist, but
+  they remain regenerable convenience artifacts rather than the canonical
+  review surface.
 - Planning can become self-checking without giving up readable long-form docs.
 - Future automation should validate text artifacts rather than invent a hidden
   second source of truth.
@@ -36,4 +39,7 @@ for explanation, with neither replaced by opaque binary state.
 - REQ-016
 - REQ-017
 - REQ-018
+- REQ-022
 - CON-005
+- CON-016
+- ADR-0010

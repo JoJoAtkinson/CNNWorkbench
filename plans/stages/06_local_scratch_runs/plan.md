@@ -28,6 +28,8 @@ local runs and completes the runtime artifact story for the common fast path.
 - runtime artifact fields for requested training runtime, resolved backend,
   deploy target, and fallback state
 - trainer log teeing into `train.log`
+- Python-owned TensorBoard event-log generation from trainer-produced
+  `metrics.csv`
 - auto-bootstrap and auto-build before launch when LibTorch or the trainer
   binary is missing or stale
 - pre-trainer failure artifact writing before the trainer process starts
@@ -42,6 +44,8 @@ local runs and completes the runtime artifact story for the common fast path.
 ## Deliverables
 
 - contributors can run a short batch and inspect the resulting artifacts
+- contributors can point TensorBoard at Python-generated event logs derived
+  from trainer metrics
 - failed child runs still produce meaningful summaries
 - runtime artifacts retain enough provenance to trace back to the originating
   repo when available
@@ -52,14 +56,16 @@ local runs and completes the runtime artifact story for the common fast path.
 
 ## Coverage
 
-- Implements: `REQ-009`
-- Constrains: `CON-004`, `CON-005`, `CON-011`, `CON-012`
+- Implements: `REQ-009`, `REQ-022`
+- Constrains: `CON-004`, `CON-005`, `CON-011`, `CON-012`, `CON-016`
 - Verifies: `ACC-004`, `R1`, `R2`, `R7`, `R10`
 
 ## Done Criteria
 
 - `run_local --run-profile short` works end to end for scratch-mode experiments
 - successful and failed child runs both produce the required artifact set
+- successful runs produce TensorBoard event logs from trainer-owned raw metrics
+  without requiring the trainer to write TensorBoard format directly
 - non-git runs record the documented sentinel provenance values and still
   proceed normally
 - pre-trainer failures still write `experiment_source.toml`,
@@ -73,6 +79,8 @@ local runs and completes the runtime artifact story for the common fast path.
   policy rejection
 - artifact schema assertions for manifest, summary, and batch summary files,
   including source-repo provenance
+- tests proving Python generates TensorBoard event logs from `metrics.csv`
+  rather than requiring TensorBoard-specific logic in the trainer
 - tests proving non-git execution records the documented sentinel provenance
   values
 - tests proving `run_local` triggers bootstrap and build automatically when the
@@ -99,4 +107,4 @@ local runs and completes the runtime artifact story for the common fast path.
 - Stage 7 should extend the run orchestration path with checkpoint-based
   initialization without rewriting local run ownership.
 
-Canonical IDs: REQ-009, CON-004, CON-005, CON-011, CON-012
+Canonical IDs: REQ-009, REQ-022, CON-004, CON-005, CON-011, CON-012, CON-016
