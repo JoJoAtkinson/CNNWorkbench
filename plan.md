@@ -744,6 +744,21 @@ Config boundary rule:
   contributors can inspect and modify real model behavior without turning the
   schema into a programming language
 
+Portability boundary test:
+
+- **Forward:** pick up `model.cpp` and the shared C++ library and compile them
+  in a production repo against LibTorch only. Any setting the model needs in
+  that environment must live in `model.cpp` — it cannot live in TOML because
+  TOML stays in the workbench.
+- **Inverse:** when you pick up `model.cpp`, are there settings you would need
+  to delete because they only made sense during experimentation? Those belong
+  in TOML. Learning rate, batch size, dataset targets, and train-loop selection
+  are experiment concerns, not model concerns.
+- `qat_int8` is the canonical example of a setting that must live in
+  `model.cpp`: the bit widths and fake-quant behavior travel to production and
+  cannot be separated from the model without breaking it. A `[quantization]`
+  TOML section would make the model incomplete without the resolution pipeline.
+
 Per-experiment architecture surface:
 
 - every experiment folder includes `model.cpp`
@@ -751,6 +766,136 @@ Per-experiment architecture surface:
   head shape, activation or normalization choices, and quantization behavior
 - the shared C++ library provides parameterized building blocks with no magic
   numbers
+- `build_model(int64_t input_channels, int64_t num_classes)` takes
+  dataset-dependent values as parameters; they are not architecture constants
+  and must not be hardcoded — they arrive from the resolved child config's
+  `[dataset]` section at trainer build time
+- each `model.cpp` should declare a `constexpr std::string_view kExperimentId`
+  at file scope; see the provenance note below
+
+Illustrative `model.cpp` shape:
+
+```cpp
+#include "cpp/models/heads/linear_head.hpp"
+#include "cpp/models/primitives/activations.hpp"
+#include "cpp/models/primitives/blocks.hpp"
+#include "cpp/models/primitives/norms.hpp"
+#include "cpp/models/quantization/qat.hpp"
+#include "cpp/models/staged_cnn.hpp"
+
+namespace cnnwb::model {
+
+constexpr std::string_view kExperimentId = "101_accelerated_wider_model";
+
+auto build_model(int64_t input_channels, int64_t num_classes) -> models::CompiledModel {
+    using namespace models;
+
+    StagedCnnBuilder model{
+        .provenance_id = kExperimentId,
+    };
+
+    model.stem(
+        conv_bn_relu({
+            .in_channels = input_channels,
+            .out_channels = 32,
+            .kernel_size = 3,
+            .stride = 1,
+            .padding = 1,
+            .norm = batch_norm(),
+            .activation = relu(),
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage1",
+            .in_channels = 32,
+            .out_channels = 64,
+            .blocks = 2,
+            .stride = 1,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage2",
+            .in_channels = 64,
+            .out_channels = 96,
+            .blocks = 3,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage3",
+            .in_channels = 96,
+            .out_channels = 256,
+            .blocks = 2,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage4",
+            .in_channels = 256,
+            .out_channels = 512,
+            .blocks = 2,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.head(
+        linear_head({
+            .in_features = 512,
+            .out_features = num_classes,
+            .dropout = 0.10,
+        }));
+
+    model.quantization(
+        qat_int8({
+            .weight_bits = 8,
+            .activation_bits = 8,
+            .fake_quant = true,
+            .per_channel_weights = true,
+        }));
+
+    return model.build();
+}
+
+}  // namespace cnnwb::model
+```
+
+Experiment provenance:
+
+The copy-paste mechanism that ships `model.cpp` to production severs the git
+history between the workbench repo and the production repo. Once the file is
+copied there is no automated link back to the originating experiment.
+
+`kExperimentId` is a compile-time constant that travels with the model. It
+compiles into the binary and is visible in any debugger or via `strings`. When
+a production engineer asks "where did this model come from?", this constant is
+the answer.
+
+Rules:
+
+- every `model.cpp` should declare `constexpr std::string_view kExperimentId`
+  at file scope with the experiment's canonical id
+- the `StagedCnnBuilder` accepts this as `provenance_id` so it can surface in
+  model metadata and checkpoints
+- removing `kExperimentId` when copying to production is permitted; retaining
+  it is strongly encouraged for traceability
+- this is an engineering convention backed by documentation, not enforced by
+  `check` or build tooling — the workbench cannot reach into a production repo
+  to verify it was kept
 
 Runtime source-of-truth rule:
 

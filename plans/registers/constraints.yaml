@@ -12,7 +12,7 @@ constraints:
     owner: architecture
     status: accepted
     source_refs:
-      - README.md#mental-model
+      - README.md#key-concepts
       - CONTRIBUTING.md#normal-contribution-workflow
       - plan.md#core-decisions
   - id: CON-002
@@ -28,7 +28,6 @@ constraints:
     owner: architecture
     status: accepted
     source_refs:
-      - README.md#how-to-change-behavior
       - plan.md#deployment-track-model
       - plan.md#validation-and-error-handling
   - id: CON-003
@@ -44,7 +43,7 @@ constraints:
     owner: architecture
     status: accepted
     source_refs:
-      - README.md#architecture
+      - README.md#how-it-works
       - CONTRIBUTING.md#choose-the-right-contribution-surface
       - plan.md#orchestration-boundaries
   - id: CON-004
@@ -198,7 +197,9 @@ constraints:
       scheduler, loss, and train-loop settings, while model graph structure,
       activation and normalization choices, quantization parameters, and other
       architecture-defining choices live in per-experiment `model.cpp` files
-      plus the shared C++ library.
+      plus the shared C++ library; dataset-dependent values such as
+      `input_channels` and `num_classes` cross the trainer boundary as runtime
+      inputs rather than authored architecture fields.
     rationale: >-
       The project needs a clear three-tier boundary so training behavior stays
       cheap to vary in TOML while architecture and low-level math remain
@@ -207,8 +208,8 @@ constraints:
     owner: architecture
     status: accepted
     source_refs:
-      - README.md#how-to-change-behavior
       - plan.md#phase-1-author-config-surface
+      - plans/decisions/ADR-0002-resolved-child-run-runtime-contract.md
       - plan.md#registry-and-factory-pattern
       - plans/decisions/ADR-0007-config-selects-code-defines-model-structure.md
       - plans/decisions/ADR-0001-config-first-experiments.md
@@ -229,7 +230,7 @@ constraints:
     owner: architecture
     status: accepted
     source_refs:
-      - README.md#mental-model
+      - README.md#key-concepts
       - README.md#quick-start
       - plan.md#inheritance-and-merge-semantics
       - plan.md#scaffolding-workflow
@@ -239,7 +240,9 @@ constraints:
     statement: >-
       The experiment-owned `model.cpp` and shared C++ model library must not
       depend on Python orchestration code, TOML model parsing, or
-      experiment-inheritance logic in order to compile for production use.
+      experiment-inheritance logic in order to compile for production use; any
+      dataset-dependent values they need must arrive through a narrow C++ call
+      from the trainer rather than framework-only plumbing.
     rationale: >-
       Production-portable experiments are only credible if the model artifact
       boundary excludes the experimentation framework itself.

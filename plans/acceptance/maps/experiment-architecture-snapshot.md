@@ -20,6 +20,9 @@ another experiment folder or reverse-engineering a deep inheritance chain.
 - A contributor scaffolds from `100_accelerated_base_v1` and receives an
   `experiment.toml`, `model.cpp`, and `notes.md`, with `model.cpp` copied from
   that base.
+- The copied `model.cpp` keeps the documented
+  `build_model(int64_t input_channels, int64_t num_classes)` entrypoint and
+  file-scope `kExperimentId` provenance convention from the base.
 - A contributor edits stage widths, block counts, or quantization settings in
   the new experiment's `model.cpp` without copying trainer-loop code.
 - A later `110_accelerated_base_v2` changes its default `model.cpp`, but the
@@ -28,7 +31,9 @@ another experiment folder or reverse-engineering a deep inheritance chain.
 - A contributor tries to scaffold an experiment from `101_accelerated_baseline`
   and is told to extend a base instead.
 - A contributor can copy the experiment's `model.cpp` plus the shared C++
-  library into a production repo without bringing TOML architecture parsing.
+  library into a production repo without bringing TOML architecture parsing,
+  while still supplying dataset-dependent `input_channels` and `num_classes`
+  through the model build entrypoint.
 
 ## Open Questions
 

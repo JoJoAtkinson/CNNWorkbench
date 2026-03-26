@@ -110,6 +110,8 @@ Independent test gate:
 - repository checks asserting the documented local runtime directories are
   ignored by git
 
+Canonical IDs: REQ-001, REQ-002, REQ-003, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, CON-005, CON-008, CON-009
+
 ## Stage 2: Experiment Authoring And Resolution
 
 Primary folders:
@@ -176,6 +178,8 @@ Independent test gate:
   stages (4, 5, 6) can only extend it additively without breaking Stage 2
   contracts
 
+Canonical IDs: REQ-001, REQ-002, REQ-004, REQ-005, REQ-013, REQ-020, REQ-021, CON-001, CON-002, CON-013, CON-014, CON-015
+
 ## Stage 3: Dataset Catalog And Preparation
 
 Primary folders:
@@ -228,6 +232,8 @@ Independent test gate:
 - tests proving `resolve --ensure-datasets` repairs the missing metadata path
 - tests proving cache reuse requires both valid metadata and the configured
   sentinel when one is defined
+
+Canonical IDs: REQ-006, CON-007
 
 ## Stage 4: Environment Detection And LibTorch Download
 
@@ -300,6 +306,8 @@ Independent test gate:
 - regression tests that pin the launch-policy surface from Stage 2 so
   environment-gating additions do not break authoring-safe policy contracts
 
+Canonical IDs: REQ-004, REQ-007, REQ-008, CON-004, CON-006, CON-008
+
 ## Stage 5: Trainer Build And Minimal Vertical Slice
 
 Primary folders:
@@ -363,6 +371,8 @@ Independent test gate:
 - C++ smoke test against a tiny resolved config fixture
 - tests for registry lookup failures
 - tests for minimum metrics and checkpoint outputs
+
+Canonical IDs: REQ-002, REQ-008, REQ-019, REQ-021, CON-003, CON-006, CON-013, CON-015
 
 ## Stage 6: Local Run Orchestration (Scratch Runs)
 
@@ -429,6 +439,8 @@ Independent test gate:
 - regression tests that pin the git-policy surface from Stages 2 and 4 so
   run-time policy additions do not break earlier contracts
 
+Canonical IDs: REQ-009, REQ-022, CON-004, CON-005, CON-011, CON-012, CON-016
+
 ## Stage 7: Resume And Fine-Tune Extension
 
 Primary folders:
@@ -480,6 +492,8 @@ Independent test gate:
 - manifest assertions proving source checkpoint is recorded correctly
 - strict versus non-strict model load behavior tests
 
+Canonical IDs: REQ-010, CON-005, CON-011, CON-012
+
 ## Stage 8: Comparison And Matrix Workflows
 
 Primary folders:
@@ -530,6 +544,8 @@ Independent test gate:
 - deployment smoke-harness tests proving CPU and accelerated targets share the
   same validation contract
 
+Canonical IDs: REQ-011, REQ-013, REQ-017, REQ-018, CON-005
+
 ## Stage 9: FPGA-Targeted Deployment Extension
 
 Primary folders:
@@ -574,6 +590,8 @@ Independent test gate:
 - trainer smoke tests for FPGA-specific registered components
 - comparison tests covering mixed accelerated-target, CPU-targeted, and
   FPGA-targeted result sets
+
+Canonical IDs: REQ-003, REQ-012, REQ-013, CON-010
 
 ## Stage Exit Rule
 

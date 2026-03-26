@@ -1,4 +1,4 @@
-@ACC-007 @REQ-014 @REQ-015 @REQ-016 @REQ-017 @REQ-018 @CON-009
+@ACC-007 @REQ-014 @REQ-015 @REQ-016 @REQ-017 @REQ-018 @CON-005 @CON-009
 Feature: Maintain the planning consistency layer
   So that the planning set stays auditable as it grows
   As a maintainer

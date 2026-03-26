@@ -27,6 +27,8 @@ works.
 - build fingerprinting under
   `build/<platform_tag>/<experiment_id>/build_fingerprint.json`
 - resolved-config parsing on the C++ side
+- trainer-side handoff of resolved dataset metadata into the experiment
+  `build_model(int64_t input_channels, int64_t num_classes)` entrypoint
 - experiment `model.cpp` compilation plus shared-library linking
 - registry bootstrap for non-model component families
 - phase 1 built-ins for the default general-purpose path
@@ -48,6 +50,8 @@ works.
 
 - contributors can build the trainer from the repo instead of a reference repo
 - a per-experiment trainer binary works for a tiny fixture
+- the trainer can supply dataset-dependent input channels and class count to
+  the compiled experiment model without reintroducing TOML-defined architecture
 - adding the second reusable block family stays localized to shared model code
 - adding the second non-model component to a registry family has a clear
   extension path
@@ -68,6 +72,9 @@ works.
 
 - `build --experiment <id>` produces a working per-experiment binary from the
   tracked C++ source tree plus that experiment's `model.cpp`
+- the trainer passes dataset metadata into the experiment model entrypoint
+  without hardcoding those values in `model.cpp` or re-parsing TOML for
+  architecture
 - the minimal trainer writes the outputs it owns directly
 - the shared code organization makes stage composition, block composition, and
   block-family extension easy for a reviewer to follow
@@ -85,6 +92,9 @@ works.
   build types
 - Python-driven trainer smoke tests that invoke the built binary against tiny
   resolved-config fixtures
+- trainer smoke tests proving resolved dataset metadata feeds
+  `build_model(...)` inputs while model structure and quantization remain
+  compiled C++ concerns
 - registry lookup failure tests for non-model component families
 - tests or review fixtures proving a second block family can be added through a
   localized shared component path rather than trainer-loop rewrites

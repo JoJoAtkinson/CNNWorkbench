@@ -78,12 +78,13 @@ REQ-019,STAGE-05,implemented_in_stage,Trainer code must keep stage and block str
 REQ-019,ACC-008,verified_by,Model structure boundary scenarios
 REQ-020,ADR-0008,decided_by,Experiments own explicit C++ model definitions
 REQ-020,STAGE-02,implemented_in_stage,Scaffolded experiments receive copied model.cpp files from a base
-REQ-020,ACC-009,verified_by,Experiment model definition scenarios
-REQ-021,ADR-0007,decided_by,Architecture and quantization move out of TOML
-REQ-021,ADR-0009,decided_by,Experiment model artifacts stay production-portable
+REQ-020,ACC-009,verified_by,Experiment model definition scenarios include copied entrypoint and provenance conventions
+REQ-021,ADR-0002,decided_by,Resolved dataset metadata feeds build_model parameters without moving architecture back into TOML
+REQ-021,ADR-0007,decided_by,Architecture and quantization move out of TOML while dataset-dependent inputs stay narrow
+REQ-021,ADR-0009,decided_by,Experiment model artifacts stay production-portable after cross-repo copy
 REQ-021,STAGE-02,implemented_in_stage,Scaffolding establishes the portable artifact boundary
 REQ-021,STAGE-05,implemented_in_stage,Build compiles portable experiment model artifacts
-REQ-021,ACC-009,verified_by,Production-portable model artifact scenarios
+REQ-021,ACC-009,verified_by,Production-portable model artifact scenarios include narrow build-model inputs
 REQ-022,ADR-0010,decided_by,Python projects trainer metrics into TensorBoard event logs
 REQ-022,STAGE-06,implemented_in_stage,Local scratch runs generate TensorBoard event logs from raw trainer metrics
 REQ-022,ACC-004,verified_by,Runtime artifact scenarios include TensorBoard projection
@@ -110,11 +111,12 @@ CON-010,ACC-006,verified_by,FPGA profile independence scenario
 CON-011,ADR-0005,decided_by,Curated promotion model depends on git-level provenance
 CON-011,ACC-004,verified_by,Local run provenance scenario
 CON-012,ACC-004,verified_by,Clean-tree full-run policy scenario
-CON-013,ADR-0007,decided_by,Config selects while shared code defines
-CON-013,ACC-008,verified_by,Model structure boundary scenarios
+CON-013,ADR-0002,decided_by,Dataset metadata crosses the trainer boundary without turning resolved TOML into architecture config
+CON-013,ADR-0007,decided_by,TOML owns training concerns while compiled model code owns architecture and quantization
+CON-013,ACC-008,verified_by,Model structure boundary scenarios include trainer-supplied dataset build inputs
 CON-014,ADR-0008,decided_by,Non-base experiments stay base-rooted
 CON-014,ACC-009,verified_by,Experiment model definition scenarios
-CON-015,ADR-0009,decided_by,Portable model code excludes framework dependencies
+CON-015,ADR-0009,decided_by,Portable model code excludes framework dependencies and accepts only narrow trainer inputs
 CON-015,ACC-009,verified_by,Production-portable model artifact scenarios
 CON-016,ADR-0010,decided_by,TensorBoard logs remain derived visualization artifacts
 CON-016,ACC-004,verified_by,Runtime artifact scenarios keep TensorBoard derived

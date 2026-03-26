@@ -1,4 +1,4 @@
-@ACC-006 @REQ-012 @REQ-013 @CON-010
+@ACC-006 @REQ-003 @REQ-012 @REQ-013 @CON-010
 Feature: Validate FPGA-targeted experiments through the shared system
   So that FPGA work stays inside the shared architecture
   As a contributor

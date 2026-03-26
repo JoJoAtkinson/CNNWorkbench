@@ -1,4 +1,4 @@
-@ACC-003 @REQ-007 @REQ-008 @CON-006 @CON-008
+@ACC-003 @REQ-007 @REQ-008 @CON-003 @CON-006 @CON-008
 Feature: Diagnose environments and build the trainer
   So that contributors fail early on unsupported setups
   As a contributor

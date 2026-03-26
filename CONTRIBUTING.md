@@ -64,7 +64,9 @@ Canonical IDs: REQ-001, REQ-004, REQ-013, CON-002, CON-003
 Use the narrowest layer that fits the change.
 
 - Change only experiment behavior under test:
-  edit `experiment.toml` in a branch or fork-local experiment folder
+  scaffold a new experiment folder from the closest aligned base in your branch
+  or fork, then edit that folder's `experiment.toml`, `model.cpp`, and
+  `notes.md`
 - Add or modify reusable orchestration behavior:
   change Python under `src/cnn_workbench/`
 - Add or modify reusable model/math behavior:
@@ -196,7 +198,8 @@ progress without a full training-capable environment.
 For most feature or experiment work:
 
 1. Start from the correct base in your current repo or fork.
-2. Make the smallest config or shared-code change that expresses the idea.
+2. Scaffold the new experiment folder, then edit `experiment.toml`,
+   `model.cpp`, and `notes.md` to express the idea.
 3. Run `check`.
 4. Run `resolve`.
 5. Run a short batch first.
@@ -219,6 +222,10 @@ Use `resolve --diff-from-parent` as the primary inspection tool before launch.
 It is the clearest way to verify what your authored experiment changed and what
 the trainer will actually receive after inheritance, dataset metadata, and
 run-profile expansion.
+
+If another experiment is the closest reference point, read it and copy the
+idea, but keep the new experiment base-rooted rather than extending another
+non-base experiment.
 
 For documentation or planning work:
 

@@ -40,6 +40,13 @@ C++ library primitives. Training and execution settings live separately in
 TOML config that the Python orchestrator resolves before each run. The two
 stay separate so the model artifact that leaves the workbench is already clean.
 
+The authoring unit is one self-contained experiment folder under
+`experiments/`. To create a new experiment, scaffold from the closest aligned
+base in the correct track. That gives you a folder with `experiment.toml`, a
+copied starting `model.cpp`, and `notes.md`, and the normal workflow is to edit
+those files in that folder. Existing derived experiments are useful references,
+but non-base experiments still scaffold from a base so lineage stays legible.
+
 Experiments run locally first to shorten the iteration cycle. Cloud submission
 is a planned second path that consumes the same resolved config contract.
 
@@ -282,6 +289,12 @@ Then continue with `new_experiment`, `check`, `resolve`, `compare`, and
 
 ### 3. Scaffold a new experiment from the correct base
 
+Pick the closest aligned base in the right track, scaffold a new experiment
+folder from it, then edit the generated `experiment.toml`, `model.cpp`, and
+`notes.md`. If another experiment is close to what you want, use it as a
+reference for what to change, but keep the new experiment base-rooted instead
+of chaining off another non-base experiment.
+
 Accelerated-target example:
 
 ```bash
@@ -306,7 +319,9 @@ uv run python -m cnn_workbench.cli.new_experiment \
   --slug cpu_debug_profile
 ```
 
-Creates `experiments/<id>/` with `experiment.toml`, a copy of the base `model.cpp`, and a `notes.md` template.
+Creates `experiments/<id>/` with `experiment.toml`, a copy of the base
+`model.cpp`, and a `notes.md` template. That folder is the unit you own and
+edit for the new experiment.
 
 Ids are repo-local. If a fork-owned experiment is promoted upstream, the upstream repo assigns the next available id before merge.
 
@@ -326,35 +341,141 @@ kind = "experiment"
 
 ```cpp
 // experiments/102_accelerated_wider_model/model.cpp
+#include "cpp/models/heads/linear_head.hpp"
+#include "cpp/models/primitives/activations.hpp"
+#include "cpp/models/primitives/blocks.hpp"
+#include "cpp/models/primitives/norms.hpp"
+#include "cpp/models/quantization/qat.hpp"
 #include "cpp/models/staged_cnn.hpp"
 
-auto build_model() {
-    return make_staged_cnn({
-        {64, 64, 2, 1},
-        {64, 96, 3, 2},
-        {96, 256, 2, 2},
-        {256, 512, 2, 2},
-    });
+namespace cnnwb::model {
+
+constexpr std::string_view kExperimentId = "102_accelerated_wider_model";
+
+auto build_model(int64_t input_channels, int64_t num_classes) -> models::CompiledModel {
+    using namespace models;
+
+    StagedCnnBuilder model{
+        .provenance_id = kExperimentId,
+    };
+
+    model.stem(
+        conv_bn_relu({
+            .in_channels = input_channels,
+            .out_channels = 32,
+            .kernel_size = 3,
+            .stride = 1,
+            .padding = 1,
+            .norm = batch_norm(),
+            .activation = relu(),
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage1",
+            .in_channels = 32,
+            .out_channels = 64,
+            .blocks = 2,
+            .stride = 1,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage2",
+            .in_channels = 64,
+            .out_channels = 96,
+            .blocks = 3,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage3",
+            .in_channels = 96,
+            .out_channels = 256,
+            .blocks = 2,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.stage(
+        make_stage({
+            .name = "stage4",
+            .in_channels = 256,
+            .out_channels = 512,
+            .blocks = 2,
+            .stride = 2,
+            .block = conv_bn_relu,
+            .norm = batch_norm,
+            .activation = relu,
+        }));
+
+    model.head(
+        linear_head({
+            .in_features = 512,
+            .out_features = num_classes,
+            .dropout = 0.10,
+        }));
+
+    model.quantization(
+        qat_int8({
+            .weight_bits = 8,
+            .activation_bits = 8,
+            .fake_quant = true,
+            .per_channel_weights = true,
+        }));
+
+    return model.build();
 }
+
+}  // namespace cnnwb::model
 ```
 
 ### 4. Edit the scaffolded model.cpp and the fields under test
 
 For model structure work, edit the scaffolded `model.cpp`. Use
-`experiment.toml` for training, runtime, dataset, and optimizer settings. Do
-not hand-copy unrelated parent sections into the child experiment, and do not
+`experiment.toml` for training, runtime, dataset, and optimizer settings. Keep
+`notes.md` updated with the hypothesis and outcome for that folder. Do not
+hand-copy unrelated parent sections into the child experiment, and do not
 build a new experiment on top of another non-base experiment.
 
 Example:
 
 ```cpp
-auto build_model() {
-    return make_staged_cnn({
-        {64, 64, 2, 1},
-        {64, 96, 3, 2},   // widened experiment stage
-        {96, 256, 2, 2},
-        {256, 512, 2, 2},
-    });
+model.stage(
+    make_stage({
+        .name = "stage2",
+        .in_channels = 64,
+        .out_channels = 96,  // widened experiment stage
+        .blocks = 3,
+        .stride = 2,
+        .block = conv_bn_relu,
+        .norm = batch_norm,
+        .activation = relu,
+    }));
+
+model.head(
+    linear_head({
+        .in_features = 512,
+        .out_features = num_classes,
+        .dropout = 0.10,
+    }));
+
+model.quantization(
+    qat_int8({
+        .weight_bits = 8,
+        .activation_bits = 8,
+        .fake_quant = true,
+        .per_channel_weights = true,
+    }));
 }
 ```
 
@@ -545,6 +666,22 @@ The purpose of this layout is to answer, without digging through git history:
 TensorBoard event logs are a derived visualization surface, not the canonical
 review artifact. The source of truth remains the text-first runtime outputs
 such as `metrics.csv`, `run_manifest.json`, and `summary.json`.
+
+### Shipping model.cpp to production
+
+When an experiment's `model.cpp` is ready, copy it together with the shared C++
+library to your production repo and compile against LibTorch. No TOML,
+Python pipeline, or resolution logic travels with it.
+
+Dataset-dependent input channels and class count still enter through
+`build_model(int64_t input_channels, int64_t num_classes)`; that does not pull
+TOML architecture parsing into production.
+
+Each `model.cpp` contains a `constexpr std::string_view kExperimentId` constant.
+That string compiles into the binary and is visible to debuggers and `strings`.
+You are permitted to remove it in production, but keeping it is strongly
+encouraged: once the code is copied and the git histories diverge, it is the
+only link that ties the running binary back to the experiment that produced it.
 
 ## Reproducibility And Git Discipline
 

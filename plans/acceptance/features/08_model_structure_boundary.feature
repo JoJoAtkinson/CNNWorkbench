@@ -21,3 +21,9 @@ Feature: Keep model composition readable and extensible in shared code
     When the contributor adds shared code for that block and references it from an experiment model
     Then the new block can be used without changing the trainer loop
     And the trainer loop does not need a bespoke per-experiment code path
+
+  Scenario: Keep dataset-dependent values out of authored architecture config
+    Given the trainer is building one resolved child run
+    When the experiment model is constructed
+    Then `input_channels` and `num_classes` are supplied through the model build entrypoint
+    And authored TOML still does not define model graph or quantization sections

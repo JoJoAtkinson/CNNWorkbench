@@ -9,6 +9,8 @@ Feature: Scaffold experiment-owned C++ model definitions
     When I scaffold a new non-base experiment from that base
     Then the new experiment includes `experiment.toml`, `model.cpp`, and `notes.md`
     And the new experiment's `model.cpp` starts from the base model definition
+    And the copied `model.cpp` keeps the documented `build_model(int64_t input_channels, int64_t num_classes)` entrypoint
+    And the copied `model.cpp` keeps the experiment provenance constant
 
   Scenario: Preserve experiment architecture when a later base changes
     Given an existing non-base experiment was scaffolded from a base
@@ -25,3 +27,4 @@ Feature: Scaffold experiment-owned C++ model definitions
     When the contributor copies the experiment `model.cpp` and the shared C++ model library
     Then the production artifact does not require Python orchestration code
     And the production artifact does not require TOML-defined architecture or quantization settings
+    And dataset-dependent input channels and class count still enter through the model build entrypoint

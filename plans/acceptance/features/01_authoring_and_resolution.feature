@@ -1,4 +1,4 @@
-@ACC-001 @REQ-001 @REQ-004 @REQ-005 @CON-001 @CON-002
+@ACC-001 @REQ-001 @REQ-002 @REQ-004 @REQ-005 @CON-001 @CON-002 @CON-003
 Feature: Scaffold and resolve an experiment chain
   So that config changes stay reviewable before training
   As a contributor

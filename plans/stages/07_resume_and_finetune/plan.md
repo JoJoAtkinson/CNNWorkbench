@@ -50,8 +50,8 @@ initialization with clear provenance.
 ## Coverage
 
 - Implements: `REQ-010`
-- Constrains: `CON-005`
-- Verifies: `ACC-005`
+- Constrains: `CON-005`, `CON-011`, `CON-012`
+- Verifies: `ACC-005`, `R1`, `R2`, `R10`
 
 ## Done Criteria
 
@@ -66,6 +66,17 @@ initialization with clear provenance.
 - validation tests for missing or incompatible checkpoint sources
 - manifest assertions proving source checkpoint is recorded correctly
 - strict versus non-strict model load behavior tests
+
+## Collaboration Risks
+
+- `R1`: Stage 7 checkpoint-based runs preserve the same clean-checkout
+  provenance guarantees as scratch runs; resumed and fine-tuned runs still
+  require a traceable git state for canonical full runs.
+- `R2`: Short runs remain a valid fast-feedback loop for verifying that
+  checkpoint initialization succeeds before committing to longer canonical runs.
+- `R10`: Runtime artifacts for resumed and fine-tuned runs — manifests,
+  summaries, and logs — stay text-first and versioned; checkpoint provenance is
+  recorded through those same artifacts rather than opaque side state.
 
 ## Handoff To Stage 8
 

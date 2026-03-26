@@ -41,6 +41,16 @@ Per-experiment C++ model code is the right place for:
 - quantization mode, bit widths, and fake-quant toggle
 - head configuration
 - any architecture parameter that would need to travel to production
+- a `constexpr std::string_view kExperimentId` provenance constant (see below)
+
+Dataset-dependent values (`input_channels`, `num_classes`) are not architecture
+constants and do not belong hardcoded in `model.cpp`. They arrive from the
+resolved child config and are passed as parameters to `build_model`. The
+`build_model` signature is:
+
+```cpp
+auto build_model(int64_t input_channels, int64_t num_classes) -> models::CompiledModel;
+```
 
 Shared C++ library code is the right place for:
 
@@ -55,6 +65,41 @@ Shared C++ library code is the right place for:
 Keep TOML config for training and execution settings. Move all model
 architecture definition into per-experiment C++ model files. Keep shared
 library code as the parameterized building-block layer with no magic numbers.
+
+### Boundary test
+
+When in doubt about whether a setting belongs in TOML config or in `model.cpp`,
+apply this test:
+
+**Forward direction — production portability:**
+Pick up `model.cpp` and the shared C++ library and move them to a production
+repo. Compile against LibTorch only. If the model requires a setting to run in
+that production environment, that setting must live in `model.cpp` or the
+shared library. It cannot live in TOML, because TOML stays behind in the
+workbench.
+
+**Inverse direction — experiment-only settings:**
+When you pick up `model.cpp`, are there settings you need to delete because
+they controlled how the experiment ran rather than what the model is? Those
+settings belong in TOML. Things like learning rate, batch size, dataset
+targets, and train-loop selection are experiment concerns, not model concerns.
+
+**Worked example — `qat_int8`:**
+`qat_int8` specifies weight quantization to 8 bits, activation quantization
+to 8 bits, and fake-quant behavior. This configuration travels with the model
+to production: an FPGA inference pipeline or a quantized accelerated deployment
+uses exactly these bit widths. Removing or changing them in production would
+break the model. Therefore `qat_int8` lives in `model.cpp`, not in a
+`[quantization]` TOML section. A `[quantization]` section in TOML would mean
+the model is incomplete without the resolution pipeline, which violates the
+portability requirement.
+
+**Provenance constant:**
+The copy-paste mechanism severs the git history between the workbench and the
+production repo. `kExperimentId` is a `constexpr std::string_view` declared at
+file scope in each `model.cpp`. It compiles into the binary as a traceable
+string. Keeping it in production is optional but strongly encouraged: it is the
+only link back to the originating experiment once the code has been moved.
 
 This means:
 

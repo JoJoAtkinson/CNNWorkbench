@@ -20,8 +20,7 @@ requirements:
       - STAGE-01
       - STAGE-02
     source_refs:
-      - README.md#mental-model
-      - README.md#sharing-and-promotion
+      - README.md#key-concepts
       - plan.md#core-decisions
       - plan.md#scaffolding-workflow
       - plans/stages/02_authoring_and_resolution/plan.md#scope
@@ -48,7 +47,7 @@ requirements:
       - STAGE-02
       - STAGE-05
     source_refs:
-      - README.md#architecture
+      - README.md#how-it-works
       - plan.md#shared-domain-model
       - plan.md#resolution-contract
       - plan.md#trainer-contract
@@ -73,7 +72,6 @@ requirements:
       - STAGE-01
       - STAGE-09
     source_refs:
-      - README.md#planned-repository-layout
       - README.md#base-hierarchy-and-tracks
       - plan.md#core-decisions
       - plan.md#canonical-roots-and-defaults
@@ -265,7 +263,7 @@ requirements:
     stage_ids:
       - STAGE-08
     source_refs:
-      - README.md#comparison-and-test-expectations
+      - README.md#comparing-results
       - plan.md#matrix-and-sweep-execution
       - plan.md#comparison-contract
       - plans/stages/08_compare_and_matrix/plan.md#deliverables
@@ -288,7 +286,6 @@ requirements:
     stage_ids:
       - STAGE-09
     source_refs:
-      - README.md#deployment-base-defaults
       - plan.md#deployment-track-model
       - plans/stages/09_fpga_deployment/plan.md#done-criteria
   - id: REQ-013
@@ -314,7 +311,6 @@ requirements:
       - STAGE-08
       - STAGE-09
     source_refs:
-      - README.md#sharing-and-promotion
       - CONTRIBUTING.md#upstream-curation-and-fork-sharing
       - plan.md#upstream-curation-forks-and-promotion
   - id: REQ-014
@@ -346,9 +342,10 @@ requirements:
       major section shall point back to the relevant canonical IDs instead of
       acting as the sole atomic source of truth.
     fit_criterion: >-
-      The major sections in the top-level narrative docs and stage plans include
-      `Canonical IDs:` or `Coverage` references that point into the canonical
-      layer.
+      The major sections in planning narrative docs — plan.md, plan-stages.md,
+      and stage plans — include `Canonical IDs:` or `Coverage` references that
+      point into the canonical layer. README.md is an end-user entrypoint and
+      does not carry planning citation lines.
     rationale: >-
       Human-readable plans remain necessary, but they need explicit bridges back
       to the structured source of truth to stay self-checking.
@@ -358,7 +355,6 @@ requirements:
     stage_ids:
       - STAGE-01
     source_refs:
-      - README.md#documentation-review-checklist
       - plan.md
       - plan-stages.md
   - id: REQ-016
@@ -452,7 +448,6 @@ requirements:
     stage_ids:
       - STAGE-05
     source_refs:
-      - README.md#how-to-change-behavior
       - plan.md#phase-1-author-config-surface
       - plan.md#registry-and-factory-pattern
       - plans/stages/05_trainer_build_and_vertical_slice/plan.md#deliverables
@@ -463,12 +458,15 @@ requirements:
       When a contributor scaffolds a non-base experiment, the system shall copy
       the base experiment's `model.cpp` into the new experiment so the
       experiment owns an explicit C++ model definition with visible stage
-      composition, dimensions, and architecture-defining quantization choices.
+      composition, dimensions, architecture-defining quantization choices, and
+      a stable `build_model(int64_t input_channels, int64_t num_classes)`
+      entrypoint.
     fit_criterion: >-
       Stage 2 scaffold output includes `experiment.toml`, `model.cpp`, and
-      `notes.md`; the copied `model.cpp` is editable in the new experiment; and
-      the acceptance layer proves later base changes do not silently rewrite
-      the architecture of already scaffolded experiments.
+      `notes.md`; the copied `model.cpp` is editable in the new experiment,
+      preserves the documented build-model surface, and the acceptance layer
+      proves later base changes do not silently rewrite the architecture of
+      already scaffolded experiments.
     rationale: >-
       Reviewers need to see the model structure directly in each experiment,
       and historical experiments should preserve their own architecture code
@@ -479,7 +477,7 @@ requirements:
     stage_ids:
       - STAGE-02
     source_refs:
-      - README.md#mental-model
+      - README.md#key-concepts
       - README.md#quick-start
       - plan.md#inheritance-and-merge-semantics
       - plan.md#scaffolding-workflow
@@ -491,12 +489,16 @@ requirements:
       When an experiment is ready to move toward production, the experiment's
       `model.cpp` plus the shared C++ model library shall remain extractable
       and compilable without any dependency on Python orchestration, TOML model
-      parsing, or experiment-inheritance logic.
+      parsing, or experiment-inheritance logic, with dataset-dependent
+      `input_channels` and `num_classes` supplied through the trainer-to-model
+      C++ boundary rather than hardcoded architecture constants.
     fit_criterion: >-
-      ADR-0009 defines the portability boundary, Stage 5 requires
-      per-experiment compilation that links only experiment model code and the
-      shared library, and acceptance artifacts verify the production-portable
-      artifact set excludes TOML-defined architecture knobs.
+      ADR-0009 defines the portability boundary, ADR-0002 defines the narrow
+      trainer handoff into `build_model(int64_t input_channels, int64_t
+      num_classes)`, Stage 5 requires per-experiment compilation that links
+      only experiment model code and the shared library, and acceptance
+      artifacts verify the production-portable artifact set excludes
+      TOML-defined architecture knobs.
     rationale: >-
       Successful experiments should produce model code that can move into a
       production repository without carrying the entire experimentation
@@ -508,8 +510,8 @@ requirements:
       - STAGE-02
       - STAGE-05
     source_refs:
-      - README.md#how-to-change-behavior
       - plan.md#trainer-contract
+      - plans/decisions/ADR-0002-resolved-child-run-runtime-contract.md
       - plan.md#registry-and-factory-pattern
       - plans/decisions/ADR-0009-production-portable-experiment-artifacts.md
   - id: REQ-022

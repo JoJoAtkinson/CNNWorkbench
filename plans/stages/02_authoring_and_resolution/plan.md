@@ -33,6 +33,9 @@ exact child-run contract the trainer would receive.
 - explicit authoring guidance that `experiment.toml` is for training and
   execution settings while `model.cpp` is for architecture
 - scaffolded experiment-local `model.cpp` files copied from the chosen base
+- copied `model.cpp` templates that keep the documented
+  `build_model(int64_t input_channels, int64_t num_classes)` surface and
+  file-scope `kExperimentId` convention
 - preview surfacing of initialization state so contributors can verify scratch,
   resume, and fine-tune intent before launch
 - `notes.md` scaffolding with required experiment sections
@@ -54,6 +57,8 @@ exact child-run contract the trainer would receive.
   repo or fork
 - scaffolded experiments own an explicit `model.cpp` architecture file in their
   own folder
+- scaffolded `model.cpp` files preserve the documented build-model signature
+  and provenance convention from the selected base
 - `check` reports all blocking config issues in one pass
 - `resolve` prints one fully materialized child config per dataset target
 - `resolve --diff-from-parent` shows both the authored delta and runtime effect
@@ -76,6 +81,8 @@ exact child-run contract the trainer would receive.
 - authored config stays limited to training and execution concerns
 - non-base experiments keep a copied `model.cpp` from a base and edit that file
   for architecture changes
+- scaffolded `model.cpp` keeps dataset-dependent `input_channels` and
+  `num_classes` as build-model parameters rather than hardcoded constants
 - non-base experiments cannot use another non-base experiment as their parent
 - runtime and deployment-target separation is visible in the resolved output
 - resolved output excludes model graph structure and quantization knobs
@@ -98,6 +105,8 @@ exact child-run contract the trainer would receive.
   present in the resolved child run contract
 - scaffold tests proving non-base experiments receive copied `model.cpp` files
   from a base parent
+- scaffold tests proving copied `model.cpp` files retain the documented
+  `build_model(...)` signature and `kExperimentId` provenance constant
 - validation tests rejecting non-base experiment parents
 - preview tests asserting initialization fields are surfaced clearly, including
   default scratch-mode resolution

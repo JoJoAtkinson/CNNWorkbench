@@ -29,6 +29,16 @@ This means:
 
 - the experiment's `model.cpp` uses shared library types with explicit
   numerical values and compiles with only the shared library and LibTorch
+- `build_model` takes `input_channels` and `num_classes` as parameters rather
+  than hardcoding them; these arrive from the resolved child config at trainer
+  build time and vary by dataset
+- each `model.cpp` declares `constexpr std::string_view kExperimentId` as a
+  compile-time provenance constant; it is optional to retain in production but
+  strongly encouraged because it is the only traceability link that survives
+  a cross-repo copy when no shared git history exists
+- shared builders may surface that provenance string into model metadata or
+  checkpoints, but the portability boundary does not require any Python-owned
+  provenance service
 - the shared library contains parameterized building blocks with no magic
   numbers; it has no dependency on the Python layer or TOML config parsing
 - a contributor moving an experiment to production copies the experiment's
@@ -43,6 +53,10 @@ This means:
 
 - The architecture boundary (ADR-0007) and experiment ownership (ADR-0008)
   directly serve this portability requirement.
+- ADR-0007 provides a concrete boundary test: pick up `model.cpp` and the
+  shared library and attempt a production compilation. Any setting the model
+  requires in that context must live in `model.cpp`; any setting that only
+  made sense during experimentation must live in TOML.
 - The shared library must not introduce dependencies on the Python layer,
   config parsing, or experiment-specific paths.
 - Build and CI should eventually verify that the shared library compiles

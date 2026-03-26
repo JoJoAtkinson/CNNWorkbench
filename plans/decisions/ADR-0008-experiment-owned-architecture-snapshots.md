@@ -12,6 +12,11 @@ model architecture — its stage composition, channel widths, block counts, and
 activation choices — in a way that is visible at a glance and does not require
 reconstructing long inheritance chains.
 
+The file shape also needs one narrow runtime-facing seam. Dataset-dependent
+values such as `input_channels` and `num_classes` vary by resolved dataset and
+therefore should arrive as parameters to the experiment-owned model entrypoint
+rather than being hardcoded as architecture constants.
+
 Contributors want each experiment to show its own model structure clearly,
 especially the dimensions and composition that are most likely to change during
 architecture exploration. They also want future base evolution to avoid
@@ -34,6 +39,12 @@ This means:
   `model.cpp` (architecture definition), and `notes.md`
 - `model.cpp` uses shared library types directly with explicit dimensions,
   block counts, strides, and activation choices — code as config
+- the documented file shape exposes a narrow entrypoint such as
+  `build_model(int64_t input_channels, int64_t num_classes)` so
+  dataset-dependent values stay out of authored architecture config
+- the documented file shape includes a file-scope
+  `constexpr std::string_view kExperimentId` provenance constant; keeping it in
+  production is recommended but not mandatory
 - scaffolding copies the base experiment's `model.cpp` as a starter template
   for new experiments
 - non-base experiments extend a base, not another non-base experiment
@@ -50,11 +61,15 @@ This means:
   experiments because each experiment owns its own `model.cpp`.
 - The project accepts per-experiment C++ model files as intentional
   code-as-config, not as code duplication.
+- The trainer-to-model handoff stays narrow: dataset metadata can vary per
+  child run without moving architecture back into TOML.
 - The experiment's `model.cpp` plus the shared library form a
   production-portable artifact that compiles without the framework.
 - Per-experiment compilation produces per-experiment binaries.
 - Stage 2 must scaffold `model.cpp` from the base template alongside
   `experiment.toml` and `notes.md`.
+- Stage 2 scaffold templates should preserve the documented build-model
+  signature and provenance convention when copying a base.
 - Shared library implementation remains the only place for reusable block,
   layer, optimizer, and trainer behavior.
 - The resolved child run scope narrows to training and execution config only;
@@ -70,8 +85,10 @@ This means:
 - REQ-008
 - REQ-020
 - REQ-021
+- CON-013
 - CON-014
 - CON-015
 - ADR-0001
+- ADR-0002
 - ADR-0007
 - ADR-0009

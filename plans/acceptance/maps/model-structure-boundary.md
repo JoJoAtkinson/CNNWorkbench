@@ -19,6 +19,9 @@ between an underpowered config surface and unreadable shared code.
 
 - A contributor changes stage widths or block counts by editing an experiment's
   `model.cpp` without forking the shared library.
+- A trainer supplies `input_channels` and `num_classes` to
+  `build_model(...)` from resolved dataset metadata without turning authored
+  TOML into a model-definition surface.
 - A contributor adds a new block family in shared code, references it from an
   experiment `model.cpp`, and does not rewrite the trainer loop.
 - A contributor changes block internals or optimizer math in shared code because
