@@ -26,10 +26,13 @@ Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, CON-009, CON-013, CO
 - Stage plans missing R* items in Coverage: none (Stage 7 fixed to include R1, R2, R10)
 - Stage plans missing Collaboration Risks section: none (Stage 7 section added)
 - Collaboration risks without mapped owning stages: none
-- Model-structure boundary coverage: `REQ-019`, `CON-013`, `ADR-0007`, and
-  `ACC-008` are all linked through Stage 5, including the narrow
+- Broken canonical `source_refs`: none (ASM-005 `README.md#sharing-and-promotion`,
+  UNK-001 `README.md#goals`, and UNK-004 `README.md#task-aliases-and-ci` fixed
+  on 2026-03-26 to point to existing anchors)
+- Model-structure boundary coverage: `REQ-019`, `REQ-001`, `CON-013`, `CON-003`,
+  `ADR-0007`, and `ACC-008` are all linked through Stage 5, including the narrow
   `build_model(...)` dataset-input boundary
-- Experiment-owned model-definition coverage: `REQ-020`, `CON-014`,
+- Experiment-owned model-definition coverage: `REQ-020`, `REQ-001`, `CON-014`,
   `ADR-0008`, and `ACC-009` are all linked through Stage 2, including copied
   model entrypoint and provenance conventions
 - Production-portability coverage: `REQ-021`, `CON-015`, `ADR-0009`, and

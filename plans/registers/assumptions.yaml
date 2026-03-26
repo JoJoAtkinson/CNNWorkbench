@@ -82,7 +82,6 @@ assumptions:
     review_trigger: upstream begins accepting most experiment-only PRs
     status: validated
     source_refs:
-      - README.md#sharing-and-promotion
       - CONTRIBUTING.md#upstream-curation-and-fork-sharing
   - id: ASM-006
     statement: >-

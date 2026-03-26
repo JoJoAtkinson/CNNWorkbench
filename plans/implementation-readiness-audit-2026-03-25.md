@@ -2,6 +2,42 @@
 
 Date: 2026-03-25
 
+> **SUPERSEDED — 2026-03-26**
+>
+> This audit is no longer an accurate description of the planning layer.
+> Between 2026-03-25 and 2026-03-26 the following issues it raised were
+> resolved:
+>
+> - **Finding 1 (broken `source_refs`):** 19 broken anchors were the state at
+>   audit time. As of 2026-03-26, only 3 remained and those were fixed in the
+>   same cleanup pass (`ASM-005` `README.md#sharing-and-promotion`,
+>   `UNK-001` `README.md#goals`, `UNK-004` `README.md#task-aliases-and-ci`).
+> - **Finding 2 (`REQ-015` narrative coverage):** The canon explicitly excludes
+>   `README.md` from the `Canonical IDs:` rule
+>   (`requirements.yaml` `REQ-015` fit criterion). This finding was invalid.
+> - **Finding 3 (acceptance-tag / trace drift):** All ACC mismatches from
+>   the 2026-03-25 pass were resolved in prior cleanup. The two remaining
+>   drift cases for `ACC-008` and `ACC-009` were resolved on 2026-03-26 by
+>   adding `REQ-001,ACC-008`, `REQ-001,ACC-009`, and `CON-003,ACC-008` rows
+>   to `trace.csv`.
+> - **Finding 4 (Stage 7 `R*` coverage):** `plans/stages/07_resume_and_finetune/plan.md`
+>   now includes `R1`, `R2`, `R10`, and a `Collaboration Risks` section.
+>   This finding is no longer valid.
+> - **Finding 5 (`coverage.md` overstates consistency):** The checksum report
+>   was updated in the same prior pass and now accurately reflects the
+>   planning layer state.
+>
+> **Current verdict (2026-03-26):** design-ready, audit-clean.
+> All 22 accepted `REQ-*` entries have stage and verification links, all 16
+> `CON-*` entries have verification targets, all 9 stage plans satisfy
+> Coverage / Done Criteria / Test Gate / `R*` rules, there are no blocking
+> open `UNK-*` entries, and all canonical `source_refs` point to existing
+> anchors.
+>
+> The original audit text below is kept as a historical record only.
+
+---
+
 ## Verdict
 
 Not ready for implementation sign-off yet.

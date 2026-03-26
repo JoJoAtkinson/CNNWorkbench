@@ -3,6 +3,8 @@ REQ-001,ADR-0001,decided_by,Config-first experiment history
 REQ-001,STAGE-01,implemented_in_stage,Foundation seeds tracked experiment roots
 REQ-001,STAGE-02,implemented_in_stage,Authoring flow scaffolds derived experiments
 REQ-001,ACC-001,verified_by,Scaffold and resolve scenarios
+REQ-001,ACC-008,verified_by,Model composition scenarios show shared C++ supports config-first architecture expression
+REQ-001,ACC-009,verified_by,Experiment model scaffolding scenarios show config-first derivation from a base
 REQ-002,ADR-0002,decided_by,Resolved child run is the runtime contract
 REQ-002,ADR-0003,decided_by,Boundary keeps resolution in Python and execution in C++
 REQ-002,STAGE-01,implemented_in_stage,Shared domain models established
@@ -95,6 +97,7 @@ CON-002,ACC-001,verified_by,Authoring scenarios keep runtime and deploy target s
 CON-003,ADR-0003,decided_by,Python and C++ ownership boundary
 CON-003,ACC-001,verified_by,Authoring flow routes changes to the correct layer
 CON-003,ACC-003,verified_by,Build flow preserves the trainer boundary
+CON-003,ACC-008,verified_by,Model structure boundary scenarios show shared C++ model code respects the Python/C++ ownership line
 CON-004,ADR-0004,decided_by,Environment strategy defines fallback discipline
 CON-004,ACC-004,verified_by,Short-run fallback and full-run policy scenarios
 CON-005,ADR-0006,decided_by,Text-first versioned artifact policy

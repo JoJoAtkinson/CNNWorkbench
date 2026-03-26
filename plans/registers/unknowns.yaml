@@ -12,7 +12,7 @@ unknowns:
     target_stage: future-azure
     status: open
     source_refs:
-      - README.md#goals
+      - README.md#why-not-just-export
       - plan.md#repository-shape
       - plan.md#shared-domain-model
   - id: UNK-002
@@ -55,5 +55,5 @@ unknowns:
     target_stage: planning-infrastructure
     status: open
     source_refs:
-      - README.md#task-aliases-and-ci
+      - README.md#task-aliases
       - plans/trace/coverage.md
