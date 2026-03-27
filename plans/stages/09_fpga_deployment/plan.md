@@ -27,8 +27,7 @@ the shared system rather than a separate project.
 ## Scope
 
 - `200_fpga_base_v1` shared defaults
-- independent named FPGA deploy profiles without inheritance or composition in
-  Phase 1
+- flat explicit named FPGA deploy profiles without inheritance or composition
 - FPGA-compatible activations, norms, quantization behavior, and export-profile
   validation hooks layered onto the shared deployment smoke harness
 - deployment-track-aware constraints for `fpga_int8_v1`
@@ -64,8 +63,8 @@ the shared system rather than a separate project.
 - trainer components required by the FPGA profile are selectable through config
 - compare output keeps FPGA-targeted results visibly distinct from the other
   deployment targets
-- Phase 1 FPGA profiles remain independent named profiles without hidden
-  inheritance rules
+- FPGA profiles remain flat explicit named profiles without hidden inheritance
+  or composition rules
 - promotion-grade FPGA review checks operator whitelist compatibility,
   quantization or calibration validity, latency budget, and hardware-reported
   resource or utilization budget when available
@@ -73,8 +72,8 @@ the shared system rather than a separate project.
 ## Test Gate
 
 - resolution tests for FPGA-base inheritance and constraint enforcement
-- profile-selection tests proving Phase 1 FPGA profiles do not inherit or
-  compose implicitly
+- profile-selection tests proving FPGA profiles do not inherit or compose
+  implicitly
 - trainer smoke tests for FPGA-specific registered components
 - hardware-gate tests covering the required promotion-grade FPGA criteria
 - comparison tests covering mixed accelerated-target, CPU-targeted, and
@@ -92,4 +91,4 @@ the shared system rather than a separate project.
 - Once this stage is complete, the repo should support the full FPGA-first but
   flexible cross-target architecture described in the top-level design docs.
 
-Canonical IDs: REQ-003, REQ-012, REQ-013, CON-010
+Canonical IDs: REQ-003, REQ-012, REQ-013, CON-010, ADR-0012

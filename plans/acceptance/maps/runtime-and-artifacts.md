@@ -19,7 +19,8 @@ about what actually ran and easy to review in Git-friendly formats.
 - `CON-005`: manifests, summaries, and compare reports stay text-first and
   versioned
 - `CON-016`: TensorBoard event logs remain derived visualization artifacts
-- `CON-011`: reproducibility relies on tracked experiments plus git provenance
+- `CON-011`: reproducibility relies on the tracked experiment folder
+  (`experiment.toml`, `model.cpp`, and `notes.md`) plus git provenance
 - `CON-012`: canonical full runs default to clean trees
 
 ## Examples

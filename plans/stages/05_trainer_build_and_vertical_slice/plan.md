@@ -26,6 +26,8 @@ works.
 - environment-scoped and experiment-scoped build roots
 - build fingerprinting under
   `build/<platform_tag>/<experiment_id>/build_fingerprint.json`
+- Python-side experiment lookup by canonical id before selecting the concrete
+  `model.cpp` source path for the build
 - resolved-config parsing on the C++ side
 - trainer-side handoff of resolved dataset metadata into the experiment
   `build_model(int64_t input_channels, int64_t num_classes)` entrypoint
@@ -65,13 +67,15 @@ works.
 ## Coverage
 
 - Implements: `REQ-002`, `REQ-008`, `REQ-019`, `REQ-021`
-- Constrains: `CON-003`, `CON-006`, `CON-013`, `CON-015`
+- Constrains: `CON-003`, `CON-006`, `CON-013`, `CON-015`, `CON-018`
 - Verifies: `ACC-003`, `ACC-008`, `ACC-009`, `R1`, `R6`, `R8`
 
 ## Done Criteria
 
 - `build --experiment <id>` produces a working per-experiment binary from the
   tracked C++ source tree plus that experiment's `model.cpp`
+- `build --experiment <id>` works even when the selected experiment folder is
+  nested under an organization-only group path
 - the trainer passes dataset metadata into the experiment model entrypoint
   without hardcoding those values in `model.cpp` or re-parsing TOML for
   architecture
@@ -102,6 +106,8 @@ works.
 - tests proving training-config-only experiment changes do not trigger a
   rebuild while tracked C++, CMake, lock-file, schema, or selected `model.cpp`
   changes do
+- tests proving grouped experiment folders do not change id-based build
+  selection or experiment-scoped build-root naming
 - no separate C++ unit-test framework is required in Phase 1; if a lightweight
   C++ harness is added later, it is secondary to the trainer-boundary tests
 
@@ -118,4 +124,4 @@ works.
 - Stage 6 should be able to orchestrate the trainer locally without changing the
   trainer contract.
 
-Canonical IDs: REQ-002, REQ-008, REQ-019, REQ-021, CON-003, CON-006, CON-013, CON-015
+Canonical IDs: REQ-002, REQ-008, REQ-019, REQ-021, CON-003, CON-006, CON-013, CON-015, CON-018

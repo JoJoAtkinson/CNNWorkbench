@@ -60,8 +60,9 @@ Canonical IDs: REQ-014, REQ-015, REQ-018, CON-005
 - Optional short runs validate at item milestones and stop early.
 - Python expands short-run schedule math into explicit milestone counts so the
   C++ trainer does not own Fibonacci or escalation logic.
-- Reproducibility uses tracked experiment folders in the repo that owns them
-  plus git state capture, not per-run source snapshots.
+- Reproducibility uses tracked experiment folders in the repo that owns them —
+  `experiment.toml`, experiment-owned `model.cpp`, and `notes.md` — plus git
+  state capture, not per-run source snapshots.
 - Canonical full runs should come from a clean git tree by default. Dirty-tree
   full runs require an explicit override.
 - Phase 1 training supports `cpu` and `accelerated` runtime intent.
@@ -453,10 +454,13 @@ Dev Container guidance:
 
 ## Experiment Hierarchy
 
-Each tracked experiment in a given repo lives in its own folder:
+Each tracked experiment in a given repo lives in its own folder. That folder
+may sit directly under `experiments/` or under optional grouping folders used
+only for organization:
 
 - `experiments/<experiment_id>/experiment.toml`
-- `experiments/<experiment_id>/notes.md`
+- `experiments/<group>/<experiment_id>/experiment.toml`
+- `experiments/<group>/<experiment_id>/notes.md`
 
 `experiment.kind` values:
 
@@ -501,12 +505,20 @@ Example hierarchy:
     └── 302_cpu_debug_profile
 ```
 
+Optional organization example:
+
+- `experiments/fpga/int8/202_fpga_shift_activation/`
+- `experiments/research/wide_models/102_accelerated_wider_model/`
+
 Rules:
 
-- `experiment.id` must equal the folder name.
+- `experiment.id` must equal the leaf folder name.
+- `experiment.id` values are repo-unique regardless of grouping path.
 - `000_template` is reserved and not directly runnable.
 - Every tracked experiment, including bases, requires `notes.md`.
 - Every tracked experiment, including bases, requires `model.cpp`.
+- Optional grouping folders are organization-only and do not imply deployment
+  target, runtime intent, or inheritance behavior.
 - Non-base experiments extend a base rather than another non-base experiment.
 - Non-base experiments keep an explicit `model.cpp` copied from that base so
   model structure is readable in the experiment itself.
@@ -602,7 +614,7 @@ Important authoring rule:
 
 These rules apply identically for local and Azure launch paths.
 
-Canonical IDs: REQ-001, REQ-020, REQ-021, CON-013, CON-014, CON-015
+Canonical IDs: REQ-001, REQ-020, REQ-021, REQ-023, CON-013, CON-014, CON-015, CON-018, ADR-0013
 
 ## Scaffolding Workflow
 
@@ -620,6 +632,9 @@ Required behavior:
 - chooses the next available experiment id in the same track within the current
   repo checkout
 - creates `experiments/<id>/`
+- leaves grouping folders out of the canonical scaffold contract; contributors
+  may later move the experiment folder under organization-only namespaces
+  without changing the experiment id
 - writes `experiment.toml`
 - copies the selected base `model.cpp` into the new experiment so architecture
   is explicit from the start
@@ -1060,8 +1075,9 @@ constraints_profile = "cpu_default"
 
 `fpga_int8_v1` is the named compatibility profile for the inspiration project
 path under `inspiration_sources/FPGAResNet18-LibTorch/`. The exact shared-code
-implementation may grow, but the profile is where common FPGA rules live. It is
-the correct place for shared defaults such as:
+implementation may grow, but FPGA deploy profiles remain flat explicit named
+profiles rather than a hierarchy. The profile is where common FPGA rules live.
+It is the correct place for shared defaults such as:
 
 - INT8 quantized weights
 - fake quantization with straight-through estimation
@@ -1267,6 +1283,8 @@ Author-facing config uses:
 - `initialization.checkpoint_source`
   - path to a checkpoint artifact or a symbolic run reference resolved by Python
   - symbolic format: `latest:<experiment_id>[:<dataset_name>[:best|last]]`
+  - `experiment_id` remains the canonical id even if the experiment folder is
+    grouped under organization-only namespaces
   - default dataset: current child's dataset name when omitted
   - default checkpoint: `best` when omitted
   - resolution walks `runs/<experiment_id>/`, selects latest batch dir (sorted),
@@ -1607,12 +1625,12 @@ FPGA component reuse rules:
 - constraint enforcement only fires for FPGA-profile experiments; other tracks
   are unconstrained about which registered components they select
 
-Future FPGA profile model:
+FPGA profile model:
 
-- Phase 1 FPGA profiles are independent named profiles
-- Phase 1 does not introduce profile inheritance or profile composition
-- if future FPGA profiles duplicate substantial constraint logic, a later plan
-  revision may introduce shared profile composition explicitly
+- FPGA deploy profiles are flat explicit named profiles
+- FPGA deploy profiles do not inherit or compose implicitly
+- new FPGA profiles are introduced as new full named rule sets rather than
+  layered descendants of an existing profile
 
 FPGA fallback policy:
 
@@ -1631,6 +1649,8 @@ FPGA-specific optimizer policy:
 - if an FPGA-only optimizer is needed later, keep it clearly scoped to that
   track and document it as advanced or internal behavior rather than the main
   public default
+
+Canonical IDs: REQ-012, CON-010, ADR-0012
 
 ## Short Run Resolution
 
@@ -1847,6 +1867,8 @@ Azure is not implemented in Phase 1, but its contract is fixed now:
 Each launched experiment produces a parent batch folder:
 
 - `runs/<experiment_id>/<batch_id>_<execution_mode>_<run_profile>/`
+
+Here `experiment_id` is the canonical experiment id, not a filesystem path.
 
 Each child dataset run must include:
 
@@ -2065,7 +2087,7 @@ Comparison output should answer:
 The resolver, scaffolder, and launcher should fail fast on:
 
 - missing `experiment.toml` or `notes.md`
-- `experiment.id` and folder-name mismatch
+- `experiment.id` and leaf-folder-name mismatch
 - invalid `experiment.kind`
 - unknown or circular `extends`
 - `000_template` containing an `extends` field
@@ -2214,6 +2236,10 @@ scripts. No console script packaging is required.
 
 Phase 1 Python entrypoints should be:
 
+- for commands that accept experiments, `<id>` always means the canonical
+  repo-unique `experiment.id`; lookup ignores optional grouping folders under
+  `experiments/`
+
 - `cnn_workbench.cli.doctor`
   - verifies host or container compatibility and emits the canonical
     `EnvironmentReport` used by later policy checks
@@ -2255,6 +2281,8 @@ Phase 1 Python entrypoints should be:
   - reads completed batch artifacts and produces dataset-aware comparisons
 - `cnn_workbench.cli.prepare_datasets <dataset_id>...`
   - prepares datasets without creating a batch or launching training
+
+Canonical IDs: REQ-004, REQ-023, CON-018, ADR-0013
 
 ## Developer Task Aliases And CI
 

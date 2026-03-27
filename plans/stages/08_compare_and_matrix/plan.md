@@ -44,13 +44,15 @@ validation harness used across deployment targets.
   backend, and fallback state
 - compare output remains a text-first, versioned artifact suitable for review
   and promotion decisions
+- compare and matrix commands keep `experiment_id` as the selector contract
+  even when experiment folders are grouped for organization
 - deployment validation uses one common contract instead of separate per-target
   paths
 
 ## Coverage
 
 - Implements: `REQ-011`, `REQ-013`, `REQ-017`, `REQ-018`
-- Constrains: `CON-005`
+- Constrains: `CON-005`, `CON-018`
 - Verifies: `ACC-005`, `ACC-007`, `R2`, `R4`, `R10`
 
 ## Done Criteria
@@ -61,6 +63,8 @@ validation harness used across deployment targets.
   curated upstream experiments
 - compare emits or writes the documented versioned report shape when report
   output is requested
+- compare and matrix inputs resolve grouped experiments by canonical id rather
+  than path
 - deployment smoke validation works for CPU and accelerated targets through one
   shared interface
 
@@ -69,6 +73,8 @@ validation harness used across deployment targets.
 - matrix expansion tests for deterministic ids and duplicate rejection
 - compare tests for missing dataset handling and profile separation
 - compare report-schema tests for the versioned machine-readable output
+- tests proving grouped experiment folders do not change `compare --experiments`
+  or matrix base-experiment selection by id
 - deployment-track-aware comparison tests proving accelerated-target,
   CPU-targeted, and FPGA-targeted runs remain labeled
 - deployment smoke-harness tests proving CPU and accelerated targets share the
@@ -88,4 +94,4 @@ validation harness used across deployment targets.
 - Stage 9 should layer FPGA-specific deployment constraints onto the shared
   smoke harness instead of inventing a separate validation universe.
 
-Canonical IDs: REQ-011, REQ-013, REQ-017, REQ-018, CON-005
+Canonical IDs: REQ-011, REQ-013, REQ-017, REQ-018, CON-005, CON-018

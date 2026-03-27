@@ -12,6 +12,8 @@ another experiment folder or reverse-engineering a deep inheritance chain.
   model definition in their own `model.cpp`.
 - `REQ-021`: the experiment `model.cpp` plus the shared library remain
   production-portable.
+- `CON-011`: the tracked experiment folder is the durable authored source used
+  for reproducibility within the owning repo.
 - `CON-014`: non-base experiments extend a base, not another experiment.
 - `CON-015`: portable model code excludes framework dependencies.
 
@@ -20,6 +22,8 @@ another experiment folder or reverse-engineering a deep inheritance chain.
 - A contributor scaffolds from `100_accelerated_base_v1` and receives an
   `experiment.toml`, `model.cpp`, and `notes.md`, with `model.cpp` copied from
   that base.
+- That tracked experiment folder is the durable authored source a contributor
+  commits and shares inside the owning repo.
 - The copied `model.cpp` keeps the documented
   `build_model(int64_t input_channels, int64_t num_classes)` entrypoint and
   file-scope `kExperimentId` provenance convention from the base.
@@ -39,4 +43,4 @@ another experiment folder or reverse-engineering a deep inheritance chain.
 
 - none
 
-Canonical IDs: ACC-009, REQ-020, REQ-021, CON-014, CON-015, REQ-001
+Canonical IDs: ACC-009, REQ-020, REQ-021, CON-011, CON-014, CON-015, REQ-001

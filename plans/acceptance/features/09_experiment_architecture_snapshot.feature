@@ -1,4 +1,4 @@
-@ACC-009 @REQ-020 @REQ-021 @CON-014 @CON-015 @REQ-001
+@ACC-009 @REQ-020 @REQ-021 @CON-011 @CON-014 @CON-015 @REQ-001
 Feature: Scaffold experiment-owned C++ model definitions
   As a contributor changing CNN architecture
   I want each experiment to carry its own editable `model.cpp`
@@ -8,6 +8,7 @@ Feature: Scaffold experiment-owned C++ model definitions
     Given a tracked base experiment exists
     When I scaffold a new non-base experiment from that base
     Then the new experiment includes `experiment.toml`, `model.cpp`, and `notes.md`
+    And the new experiment folder is the durable tracked source for that experiment in the repo
     And the new experiment's `model.cpp` starts from the base model definition
     And the copied `model.cpp` keeps the documented `build_model(int64_t input_channels, int64_t num_classes)` entrypoint
     And the copied `model.cpp` keeps the experiment provenance constant

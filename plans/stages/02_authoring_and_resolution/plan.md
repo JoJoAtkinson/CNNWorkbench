@@ -18,6 +18,8 @@ exact child-run contract the trainer would receive.
 
 - `new_experiment`
 - experiment inheritance and merge semantics
+- recursive experiment discovery under `experiments/` with grouping folders
+  treated as organization-only
 - base-only lineage for non-base experiments
 - schema validation and error aggregation
 - structured JSON validation output for `check` and `resolve`
@@ -41,6 +43,7 @@ exact child-run contract the trainer would receive.
 - `notes.md` scaffolding with required experiment sections
 - repo-local id allocation, promotion-aware scaffold behavior, and
   `metadata.owner` expectations for shared or promoted experiments
+- path-independent experiment lookup by repo-unique `experiment.id`
 - hard-fail behavior for unsupported legacy authored syntax under the current
   engine contract
 
@@ -57,6 +60,8 @@ exact child-run contract the trainer would receive.
   repo or fork
 - scaffolded experiments own an explicit `model.cpp` architecture file in their
   own folder
+- scaffolded experiment folders stay the durable tracked source contributors
+  commit and share for authored experiment changes
 - scaffolded `model.cpp` files preserve the documented build-model signature
   and provenance convention from the selected base
 - `check` reports all blocking config issues in one pass
@@ -65,14 +70,16 @@ exact child-run contract the trainer would receive.
 - the author-facing workflow is usable on an authoring-only machine
 - repo-local scaffolding works without assuming one globally coordinated id
   space across forks
+- optional grouping folders do not change canonical experiment selection
 - preview output makes initialization state explicit even before the operational
   resume/finetune path exists
 
 ## Coverage
 
 - Implements: `REQ-001`, `REQ-002`, `REQ-004`, `REQ-005`, `REQ-013`,
-  `REQ-020`, `REQ-021`
-- Constrains: `CON-001`, `CON-002`, `CON-013`, `CON-014`, `CON-015`
+  `REQ-020`, `REQ-021`, `REQ-023`
+- Constrains: `CON-001`, `CON-002`, `CON-011`, `CON-013`, `CON-014`,
+  `CON-015`, `CON-018`
 - Verifies: `ACC-001`, `ACC-009`, `R2`, `R4`, `R5`
 
 ## Done Criteria
@@ -81,6 +88,11 @@ exact child-run contract the trainer would receive.
 - authored config stays limited to training and execution concerns
 - non-base experiments keep a copied `model.cpp` from a base and edit that file
   for architecture changes
+- scaffolded experiment folders remain the durable authored source that is
+  committed with any related shared-code change
+- experiment lookup works by repo-unique `experiment.id` regardless of optional
+  grouping folders under `experiments/`
+- duplicate experiment ids anywhere under `experiments/` fail validation
 - scaffolded `model.cpp` keeps dataset-dependent `input_channels` and
   `num_classes` as build-model parameters rather than hardcoded constants
 - non-base experiments cannot use another non-base experiment as their parent
@@ -96,6 +108,7 @@ exact child-run contract the trainer would receive.
 
 - scaffolder tests for repo-local experiment id allocation and notes template
   creation
+- discovery tests for grouped experiment folders and duplicate id rejection
 - validation tests for documented authoring failures
 - validation tests for the structured JSON `errors` output shape
 - resolution tests for inheritance, merge rules, and deployment-track
@@ -128,4 +141,4 @@ exact child-run contract the trainer would receive.
 - Stage 3 replaces fixture dataset metadata with real dataset catalog and
   preparation logic without changing the resolved contract shape.
 
-Canonical IDs: REQ-001, REQ-002, REQ-004, REQ-005, REQ-013, REQ-020, REQ-021, CON-001, CON-002, CON-013, CON-014, CON-015
+Canonical IDs: REQ-001, REQ-002, REQ-004, REQ-005, REQ-013, REQ-020, REQ-021, REQ-023, CON-001, CON-002, CON-011, CON-013, CON-014, CON-015, CON-018, ADR-0013

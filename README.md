@@ -41,11 +41,13 @@ TOML config that the Python orchestrator resolves before each run. The two
 stay separate so the model artifact that leaves the workbench is already clean.
 
 The authoring unit is one self-contained experiment folder under
-`experiments/`. To create a new experiment, scaffold from the closest aligned
-base in the correct track. That gives you a folder with `experiment.toml`, a
-copied starting `model.cpp`, and `notes.md`, and the normal workflow is to edit
-those files in that folder. Existing derived experiments are useful references,
-but non-base experiments still scaffold from a base so lineage stays legible.
+`experiments/`. That folder may live directly under `experiments/` or inside
+optional grouping folders used only for organization. To create a new
+experiment, scaffold from the closest aligned base in the correct track. That
+gives you a folder with `experiment.toml`, a copied starting `model.cpp`, and
+`notes.md`, and the normal workflow is to edit those files in that folder.
+Existing derived experiments are useful references, but non-base experiments
+still scaffold from a base so lineage stays legible.
 
 Experiments run locally first to shorten the iteration cycle. Cloud submission
 is a planned second path that consumes the same resolved config contract.
@@ -321,7 +323,9 @@ uv run python -m cnn_workbench.cli.new_experiment \
 
 Creates `experiments/<id>/` with `experiment.toml`, a copy of the base
 `model.cpp`, and a `notes.md` template. That folder is the unit you own and
-edit for the new experiment.
+edit for the new experiment. If you later move it under an organization folder
+such as `experiments/fpga/int8/`, commands still refer to the experiment by
+its unique id, not by the folder path.
 
 Ids are repo-local. If a fork-owned experiment is promoted upstream, the upstream repo assigns the next available id before merge.
 
@@ -632,6 +636,9 @@ Each launch should write a parent batch under:
 runs/<experiment_id>/<batch_id>_<execution_mode>_<run_profile>/
 ```
 
+`experiment_id` here is the canonical experiment id regardless of whether the
+experiment folder lives at the repo root or under grouping folders.
+
 `execution_mode` should be `local` for local launches and `azure` for future
 remote launches. `resolve` uses `execution_mode = "preview"` without creating a
 batch folder.
@@ -685,9 +692,10 @@ only link that ties the running binary back to the experiment that produced it.
 
 ## Reproducibility And Git Discipline
 
-Within a given repo, each experiment folder is tracked source of truth. Runtime
-output is not. The upstream repo intentionally contains only curated bases,
-examples, and promoted experiments.
+Within a given repo, each experiment folder — `experiment.toml`, `model.cpp`,
+and `notes.md` together — is tracked source of truth. Runtime output is not.
+The upstream repo intentionally contains only curated bases, examples, and
+promoted experiments.
 
 Normal author workflow:
 

@@ -145,28 +145,33 @@ constraints:
       - plans/stages/01_foundation/plan.md
       - plans/trace/coverage.md
   - id: CON-010
-    title: Independent Phase 1 FPGA Profiles
+    title: Flat And Explicit FPGA Profiles
     statement: >-
-      Phase 1 FPGA deploy profiles are independent named profiles and do not
-      inherit or compose implicitly.
+      FPGA deploy profiles are flat explicit named profiles and do not inherit
+      or compose implicitly.
     rationale: >-
-      The FPGA path is still stabilizing, so hidden profile composition would
-      make validation and promotion rules hard to audit.
+      FPGA validation and promotion rules must remain auditable, and a flat
+      profile model avoids hidden constraint inheritance inside the deployment
+      path.
     severity: medium
     owner: deployment
     status: accepted
     source_refs:
       - plan.md#deployment-track-model
+      - plans/decisions/ADR-0012-flat-and-explicit-fpga-profiles.md
       - plans/mock_implementation_learned.md#stage-9-fpga-deployment-extension
       - plans/stages/09_fpga_deployment/plan.md#scope
   - id: CON-011
     title: Git-Based Reproducibility
     statement: >-
-      Reproducibility uses tracked experiment folders plus git provenance and
-      runtime artifacts rather than per-run source snapshots.
+      Reproducibility uses the tracked experiment folder in the repo that owns
+      it — including `experiment.toml`, experiment-owned `model.cpp`, and
+      `notes.md` — plus git provenance and runtime artifacts rather than
+      per-run source snapshots.
     rationale: >-
       The project wants reproducible runs without multiplying opaque source
-      archives inside runtime outputs.
+      archives inside runtime outputs, and it treats the authored experiment
+      folder as the durable human-owned record of the experiment.
     severity: high
     owner: collaboration
     status: accepted
@@ -271,3 +276,46 @@ constraints:
       - README.md#run-artifacts
       - plan.md#artifact-contract
       - plans/decisions/ADR-0010-python-owned-tensorboard-projection.md
+  - id: CON-017
+    title: Shared C++ Library Is Additive-Stable
+    statement: >-
+      New behavior in the shared C++ library is introduced as new classes or
+      types rather than by modifying existing ones; existing shared library
+      classes and their public interfaces are stable once any experiment or
+      production artifact references them.
+    rationale: >-
+      Experiments are deployed to production by copying `model.cpp` plus the
+      shared C++ library. If existing shared library classes are modified after
+      that copy, the workbench and the production build silently diverge.
+      Keeping existing classes stable and extending the library only through
+      new additions preserves the production-portability guarantee across
+      workbench versions.
+    severity: high
+    owner: architecture
+    status: accepted
+    source_refs:
+      - README.md#how-it-works
+      - README.md#reproducibility-and-git-discipline
+      - plans/decisions/ADR-0011-shared-library-additive-stability.md
+  - id: CON-018
+    title: Group Folders Are Organization-Only
+    statement: >-
+      Optional parent folders beneath `experiments/` are organization-only
+      namespaces with no runtime, deployment-target, or compiler semantics;
+      `experiment.id` must remain repo-unique regardless of path, the leaf
+      experiment folder name must equal `experiment.id`, and duplicate ids
+      anywhere under `experiments/` are invalid.
+    rationale: >-
+      Group folders improve repo organization only if they do not become a
+      second identity contract. Keeping commands, build roots, run artifacts,
+      compare inputs, and checkpoint references keyed by `experiment.id`
+      preserves a simple machine-facing surface and keeps C++ build behavior
+      path-agnostic.
+    severity: high
+    owner: architecture
+    status: accepted
+    source_refs:
+      - README.md#quick-start
+      - plan.md#experiment-hierarchy
+      - plan.md#cli-surface
+      - plans/decisions/ADR-0013-grouped-experiment-folders-with-id-based-selection.md

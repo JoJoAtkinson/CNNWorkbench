@@ -540,3 +540,32 @@ requirements:
       - plan.md#artifact-contract
       - plan.md#orchestration-boundaries
       - plans/stages/06_local_scratch_runs/plan.md#scope
+  - id: REQ-023
+    title: Path-Independent Experiment Selection
+    category: authoring
+    statement: >-
+      When contributors organize experiments under optional grouping folders
+      beneath `experiments/`, the workbench shall keep repo-unique
+      `experiment.id` values as the canonical selectors for authoring and
+      operational commands rather than requiring path-based experiment
+      arguments.
+    fit_criterion: >-
+      Stage 2 defines recursive experiment discovery under `experiments/`,
+      keeps `--experiment <id>` and `--experiments <id>...` as the canonical
+      command surface, and acceptance artifacts verify that grouped folders do
+      not change experiment selection behavior.
+    rationale: >-
+      Optional folder grouping should remain a human organization aid rather
+      than a second identity layer that leaks into build, run, compare, or
+      checkpoint workflows.
+    priority: medium
+    owner: authoring
+    status: accepted
+    stage_ids:
+      - STAGE-02
+    source_refs:
+      - README.md#quick-start
+      - plan.md#experiment-hierarchy
+      - plan.md#scaffolding-workflow
+      - plan.md#cli-surface
+      - plans/stages/02_authoring_and_resolution/plan.md#scope

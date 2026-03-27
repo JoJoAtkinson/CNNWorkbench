@@ -150,6 +150,9 @@ Working rules:
 - `new_experiment` allocates ids in the repo you are currently using. Fork-local
   ids are local and may be renumbered if an experiment is later promoted
   upstream.
+- Grouping folders under `experiments/` are optional organization helpers
+  only. Commands still use canonical experiment ids, and ids must remain unique
+  across the whole repo regardless of path.
 - Use `metadata.owner` as a stable GitHub handle or organization label for
   experiments intended to be shared outside a private workspace.
 - GitHub pull requests compare one branch against upstream. Other experiment
@@ -200,6 +203,8 @@ For most feature or experiment work:
 1. Start from the correct base in your current repo or fork.
 2. Scaffold the new experiment folder, then edit `experiment.toml`,
    `model.cpp`, and `notes.md` to express the idea.
+   Optional grouping folders are fine for organization, but they do not change
+   the experiment id or command arguments.
 3. Run `check`.
 4. Run `resolve`.
 5. Run a short batch first.

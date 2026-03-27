@@ -39,8 +39,9 @@ unknowns:
     blocking: false
     owner: deployment
     target_stage: STAGE-09
-    status: open
+    status: resolved
     source_refs:
+      - plans/decisions/ADR-0012-flat-and-explicit-fpga-profiles.md
       - plan.md#deployment-track-model
       - plans/mock_implementation_learned.md#stage-9-fpga-deployment-extension
   - id: UNK-004

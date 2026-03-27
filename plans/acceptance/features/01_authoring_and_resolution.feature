@@ -1,4 +1,4 @@
-@ACC-001 @REQ-001 @REQ-002 @REQ-004 @REQ-005 @CON-001 @CON-002 @CON-003
+@ACC-001 @REQ-001 @REQ-002 @REQ-004 @REQ-005 @REQ-023 @CON-001 @CON-002 @CON-003 @CON-018
 Feature: Scaffold and resolve an experiment chain
   So that config changes stay reviewable before training
   As a contributor
@@ -10,6 +10,12 @@ Feature: Scaffold and resolve an experiment chain
     Then the repo allocates the next valid repo-local experiment ID
     And the new experiment folder records its parent linkage
     And the generated notes template explains the hypothesis and fields under test
+
+  Scenario: Resolve a grouped experiment by canonical id
+    Given an experiment folder has been moved under an organization-only group path
+    When the contributor runs check or resolve using the experiment id
+    Then the command finds the experiment without requiring the group path
+    And duplicate experiment ids anywhere under `experiments/` are rejected
 
   Scenario: Inspect the runtime effect before launch
     Given a derived experiment changes authored config fields

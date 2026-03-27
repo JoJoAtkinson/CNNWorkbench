@@ -10,7 +10,7 @@ Feature: Validate FPGA-targeted experiments through the shared system
     Then the experiment uses the shared core path
     And FPGA-specific constraints are enforced through explicit profile checks
 
-  Scenario: Keep FPGA profiles independent in phase 1
+  Scenario: Keep FPGA profiles flat and explicit
     Given more than one FPGA deploy profile exists
     When a contributor selects one profile
     Then the profile does not inherit or compose rules implicitly from another profile

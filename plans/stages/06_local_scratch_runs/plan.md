@@ -49,6 +49,8 @@ local runs and completes the runtime artifact story for the common fast path.
 - failed child runs still produce meaningful summaries
 - runtime artifacts retain enough provenance to trace back to the originating
   repo when available
+- grouped experiment folders do not change `run_local --experiment <id>` or the
+  `runs/<experiment_id>/` artifact root
 - CPU-fallback short runs are visible and cannot be mistaken for true
   accelerated runs
 - `run_local` can trigger the same bootstrap and build flow automatically before
@@ -57,7 +59,8 @@ local runs and completes the runtime artifact story for the common fast path.
 ## Coverage
 
 - Implements: `REQ-009`, `REQ-022`
-- Constrains: `CON-004`, `CON-005`, `CON-011`, `CON-012`, `CON-016`
+- Constrains: `CON-004`, `CON-005`, `CON-011`, `CON-012`, `CON-016`,
+  `CON-018`
 - Verifies: `ACC-004`, `R1`, `R2`, `R7`, `R10`
 
 ## Done Criteria
@@ -70,6 +73,8 @@ local runs and completes the runtime artifact story for the common fast path.
   proceed normally
 - pre-trainer failures still write `experiment_source.toml`,
   `resolved_config.toml`, `run_manifest.json`, and `summary.json`
+- grouped experiment folders do not change canonical experiment selection or
+  the `runs/<experiment_id>/` artifact path
 - dirty-tree and stop-on-failure policies behave as documented
 
 ## Test Gate
@@ -85,6 +90,8 @@ local runs and completes the runtime artifact story for the common fast path.
   values
 - tests proving `run_local` triggers bootstrap and build automatically when the
   required artifacts are missing or stale
+- tests proving grouped experiment folders still resolve through
+  `run_local --experiment <id>` without changing artifact roots
 - failure-path assertions proving that pre-trainer and trainer-crash cases still
   write a valid failure `summary.json`
 - failure-path assertions proving pre-trainer failures omit `train.log` while
@@ -107,4 +114,4 @@ local runs and completes the runtime artifact story for the common fast path.
 - Stage 7 should extend the run orchestration path with checkpoint-based
   initialization without rewriting local run ownership.
 
-Canonical IDs: REQ-009, REQ-022, CON-004, CON-005, CON-011, CON-012, CON-016
+Canonical IDs: REQ-009, REQ-022, CON-004, CON-005, CON-011, CON-012, CON-016, CON-018

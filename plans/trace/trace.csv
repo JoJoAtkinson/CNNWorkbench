@@ -49,6 +49,7 @@ REQ-011,ADR-0006,decided_by,Compare reports stay text-first and versioned
 REQ-011,STAGE-08,implemented_in_stage,Matrix and compare workflows
 REQ-011,ACC-005,verified_by,Compare scenarios
 REQ-012,ADR-0005,decided_by,FPGA promotion happens inside the curated model
+REQ-012,ADR-0012,decided_by,FPGA deployment keeps flat explicit deploy profiles
 REQ-012,STAGE-09,implemented_in_stage,FPGA deployment extension
 REQ-012,ACC-006,verified_by,FPGA scenarios
 REQ-013,ADR-0005,decided_by,Curated upstream experiment history
@@ -90,6 +91,9 @@ REQ-021,ACC-009,verified_by,Production-portable model artifact scenarios include
 REQ-022,ADR-0010,decided_by,Python projects trainer metrics into TensorBoard event logs
 REQ-022,STAGE-06,implemented_in_stage,Local scratch runs generate TensorBoard event logs from raw trainer metrics
 REQ-022,ACC-004,verified_by,Runtime artifact scenarios include TensorBoard projection
+REQ-023,ADR-0013,decided_by,Experiment selection stays id-based even when folders are grouped
+REQ-023,STAGE-02,implemented_in_stage,Authoring resolves experiments recursively by unique id
+REQ-023,ACC-001,verified_by,Grouped experiment scenarios keep id-based lookup
 CON-001,ADR-0001,decided_by,Config-first history depends on immutable roots
 CON-001,ACC-001,verified_by,Authoring scenarios preserve template and experiment history
 CON-002,ADR-0001,decided_by,Config-first experiments keep deploy and runtime intent explicit
@@ -110,9 +114,12 @@ CON-007,ACC-002,verified_by,Dataset metadata scenarios
 CON-008,ADR-0004,decided_by,One Python environment contract
 CON-008,ACC-003,verified_by,Doctor and build scenarios use uv and python -m
 CON-009,ACC-007,verified_by,Planning consistency scenarios enforce stage coverage and blocking unknown rules
+CON-010,ADR-0012,decided_by,FPGA deploy profiles stay flat and explicit without inheritance
 CON-010,ACC-006,verified_by,FPGA profile independence scenario
 CON-011,ADR-0005,decided_by,Curated promotion model depends on git-level provenance
+CON-011,ADR-0008,decided_by,Tracked experiment folders carry the owned authored files that define the experiment
 CON-011,ACC-004,verified_by,Local run provenance scenario
+CON-011,ACC-009,verified_by,Experiment scaffolding scenarios pin the tracked folder shape used for reproducibility
 CON-012,ACC-004,verified_by,Clean-tree full-run policy scenario
 CON-013,ADR-0002,decided_by,Dataset metadata crosses the trainer boundary without turning resolved TOML into architecture config
 CON-013,ADR-0007,decided_by,TOML owns training concerns while compiled model code owns architecture and quantization
@@ -159,3 +166,12 @@ R10,STAGE-01,verified_by,Tracked text artifacts remain first-class review surfac
 R10,STAGE-06,verified_by,Run manifests and summaries stay canonical
 R10,STAGE-08,verified_by,Compare reports stay text-first
 R10,STAGE-09,verified_by,FPGA validation outputs stay text-first
+CON-017,ADR-0011,decided_by,Shared library additive-stability rule
+CON-017,ACC-008,verified_by,Model structure boundary scenarios include shared library interface stability
+CON-017,ACC-009,verified_by,Experiment model definition scenarios verify that shared library primitives are stable
+CON-018,ADR-0013,decided_by,Group folders are organization-only and ids remain path-independent
+CON-018,ACC-001,verified_by,Grouped experiment scenarios reject duplicate ids and keep path-independent selection
+ADR-0011,ADR-0007,refines,Adds shared library stability constraint to the decision that C++ code defines model structure
+ADR-0011,ADR-0008,refines,Extends experiment-owned model file design with shared library stability constraint
+ADR-0011,ADR-0009,refines,Supports production portability by freezing existing shared library class interfaces
+UNK-003,ADR-0012,decided_by,Future FPGA profile composition resolved in favor of flat explicit profiles

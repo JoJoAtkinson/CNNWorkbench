@@ -50,7 +50,7 @@ initialization with clear provenance.
 ## Coverage
 
 - Implements: `REQ-010`
-- Constrains: `CON-005`, `CON-011`, `CON-012`
+- Constrains: `CON-005`, `CON-011`, `CON-012`, `CON-018`
 - Verifies: `ACC-005`, `R1`, `R2`, `R10`
 
 ## Done Criteria
@@ -58,6 +58,8 @@ initialization with clear provenance.
 - `resume` restores model and optimizer state correctly
 - `finetune` starts a new job with loaded weights and fresh optimizer state
 - resumed runs write new child-run folders that record source checkpoints
+- symbolic checkpoint references remain keyed by `experiment_id` even when
+  experiment folders are grouped
 
 ## Test Gate
 
@@ -66,6 +68,8 @@ initialization with clear provenance.
 - validation tests for missing or incompatible checkpoint sources
 - manifest assertions proving source checkpoint is recorded correctly
 - strict versus non-strict model load behavior tests
+- tests proving grouped experiment folders do not change
+  `latest:<experiment_id>` checkpoint lookup
 
 ## Collaboration Risks
 
@@ -83,4 +87,4 @@ initialization with clear provenance.
 - Stage 8 should be able to compare and matrix-expand runs that include scratch,
   resume, and fine-tune provenance.
 
-Canonical IDs: REQ-010, CON-005
+Canonical IDs: REQ-010, CON-005, CON-018

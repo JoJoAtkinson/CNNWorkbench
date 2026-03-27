@@ -6,15 +6,15 @@ implementation-side CI surface for planning artifacts.
 
 ## Summary
 
-- Accepted requirements: 22
-- Accepted constraints: 16
+- Accepted requirements: 23
+- Accepted constraints: 18
 - Active collaboration risks: 10
-- Open unknowns: 4
+- Open unknowns: 3
 - Open blocking unknowns: 0
-- ADRs: 10 accepted, 0 superseded, 0 proposed
+- ADRs: 13 accepted, 0 superseded, 0 proposed
 - Acceptance IDs: 9
 
-Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, CON-009, CON-013, CON-014, CON-015, CON-016, ACC-007, ACC-008, ACC-009
+Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, CON-009, CON-013, CON-014, CON-015, CON-016, CON-017, CON-018, ACC-007, ACC-008, ACC-009, ADR-0013
 
 ## Coverage Status
 
@@ -35,11 +35,23 @@ Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, CON-009, CON-013, CO
 - Experiment-owned model-definition coverage: `REQ-020`, `REQ-001`, `CON-014`,
   `ADR-0008`, and `ACC-009` are all linked through Stage 2, including copied
   model entrypoint and provenance conventions
+- Tracked-experiment reproducibility coverage: `CON-011`, `ADR-0005`,
+  `ADR-0008`, `ACC-009`, and `ACC-004` link the owned experiment folder to
+  git provenance and runtime artifact expectations
 - Production-portability coverage: `REQ-021`, `CON-015`, `ADR-0009`, and
   `ACC-009` are linked through Stage 2 and Stage 5, including trainer-supplied
   dataset metadata at the portable model boundary
 - TensorBoard projection coverage: `REQ-022`, `CON-016`, `ADR-0010`, and
   `ACC-004` are linked through Stage 6
+- Shared library additive-stability coverage: `CON-017` and `ADR-0011` are
+  linked through `ACC-008` and `ACC-009`; `ADR-0011` refines `ADR-0008` and
+  `ADR-0009`
+- FPGA profile-model coverage: `REQ-012`, `CON-010`, `ADR-0012`, and
+  `ACC-006` are linked through Stage 9, keeping deploy profiles flat and
+  explicit
+- Grouped-experiment selection coverage: `REQ-023`, `CON-018`, `ADR-0013`, and
+  `ACC-001` keep folder grouping organizational while canonical selection stays
+  id-based
 
 Canonical IDs: REQ-016, REQ-018, CON-009
 
@@ -59,10 +71,9 @@ Open non-blocking unknowns:
 
 - `UNK-001`: Azure submission contract details
 - `UNK-002`: future compare filter surface
-- `UNK-003`: possible future FPGA profile composition
 - `UNK-004`: when to automate planning checks in CI
 
-Canonical IDs: UNK-001, UNK-002, UNK-003, UNK-004, CON-009
+Canonical IDs: UNK-001, UNK-002, UNK-004, CON-009
 
 ## Supersession Watch
 
