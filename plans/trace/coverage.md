@@ -6,15 +6,15 @@ implementation-side CI surface for planning artifacts.
 
 ## Summary
 
-- Accepted requirements: 23
+- Accepted requirements: 24
 - Accepted constraints: 18
 - Active collaboration risks: 10
 - Open unknowns: 3
 - Open blocking unknowns: 0
-- ADRs: 13 accepted, 0 superseded, 0 proposed
+- ADRs: 14 accepted, 0 superseded, 0 proposed
 - Acceptance IDs: 9
 
-Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, CON-009, CON-013, CON-014, CON-015, CON-016, CON-017, CON-018, ACC-007, ACC-008, ACC-009, ADR-0013
+Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, CON-009, CON-013, CON-014, CON-015, CON-016, CON-017, CON-018, ACC-007, ACC-008, ACC-009, ADR-0013, ADR-0014
 
 ## Coverage Status
 
@@ -52,8 +52,13 @@ Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, CON-009, CO
 - Grouped-experiment selection coverage: `REQ-023`, `CON-018`, `ADR-0013`, and
   `ACC-001` keep folder grouping organizational while canonical selection stays
   id-based
+- Convergence-aware comparison coverage: `REQ-024`, `ADR-0014`, `ADR-0010`,
+  and `CON-005` define the two-layer comparison model; Stage 8 owns derived
+  feature computation (steps-to-target, budgeted best, peak-to-final drop) and
+  rank-based multi-dataset aggregation from canonical `metrics.csv` artifacts;
+  accepted `REQ-024` is verified by `ACC-005` and implemented in `STAGE-08`
 
-Canonical IDs: REQ-016, REQ-018, CON-009
+Canonical IDs: REQ-016, REQ-018, REQ-024, ADR-0014, CON-009
 
 ## Blocking Unknowns By Stage
 

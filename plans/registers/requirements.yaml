@@ -569,3 +569,34 @@ requirements:
       - plan.md#scaffolding-workflow
       - plan.md#cli-surface
       - plans/stages/02_authoring_and_resolution/plan.md#scope
+  - id: REQ-024
+    title: Convergence-And-Stability Features In Compare Reports
+    category: analysis
+    statement: >-
+      When contributors compare experiments across datasets, the compare report
+      shall include derived convergence and stability features computed from raw
+      metrics artifacts, including at minimum steps-to-target, budgeted best,
+      and peak-to-final drop per dataset per run, plus a rank-based
+      multi-dataset aggregation summary rather than raw metric averaging.
+    fit_criterion: >-
+      ADR-0014 defines the canonical derived feature set; Stage 8 compare
+      report schema includes per-dataset convergence features (steps or epochs
+      to a defined threshold), a stability indicator (peak-to-final drop), and
+      a dataset-level rank summary; all derived features are recomputable from
+      the run's canonical metrics.csv artifacts without an external tracking
+      platform.
+    rationale: >-
+      Raw final-metric comparisons do not reliably distinguish convergence
+      speed, stability, or generalization behavior across architectural changes;
+      contributors need derived signals to make architecture promotion decisions,
+      and outside observers cloning the repository need them to interpret
+      published results without access to a live tracking server.
+    priority: medium
+    owner: analysis
+    status: accepted
+    stage_ids:
+      - STAGE-08
+    source_refs:
+      - plan.md#comparison-contract
+      - plans/decisions/ADR-0014-convergence-aware-comparison-methodology.md
+      - plans/stages/08_compare_and_matrix/plan.md#scope

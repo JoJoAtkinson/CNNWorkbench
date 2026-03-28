@@ -175,3 +175,9 @@ ADR-0011,ADR-0007,refines,Adds shared library stability constraint to the decisi
 ADR-0011,ADR-0008,refines,Extends experiment-owned model file design with shared library stability constraint
 ADR-0011,ADR-0009,refines,Supports production portability by freezing existing shared library class interfaces
 UNK-003,ADR-0012,decided_by,Future FPGA profile composition resolved in favor of flat explicit profiles
+REQ-024,ADR-0014,decided_by,Convergence-aware comparison methodology defines the canonical derived feature set and rank aggregation approach
+REQ-024,REQ-011,refines,Extends the compare report contract with first-class analytical content
+REQ-024,STAGE-08,implemented_in_stage,Compare command derives convergence and stability features from raw metrics artifacts
+REQ-024,ACC-005,verified_by,Compare scenarios must verify derived feature presence and rank summary output
+ADR-0014,ADR-0010,refines,Separates per-run curve inspection from the decision-layer compare report
+ADR-0014,ADR-0006,refines,Derived comparison features stay text-first and recomputable from canonical artifacts
