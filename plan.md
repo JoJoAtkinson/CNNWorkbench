@@ -1375,25 +1375,91 @@ Catalog schema contract:
 - changing required fields or field meanings in `configs/datasets.toml`
   requires a catalog-version bump and schema update
 
+### Dataset Name Alignment Rule
+
+The dataset identifier is used consistently across four surfaces. All four
+must use the same string with no mapping table or alias between them:
+
+- the catalog key in `configs/datasets.toml` (e.g., `[numbers]`)
+- the value in `batch.dataset_targets` in authored experiments (e.g.,
+  `dataset_targets = ["numbers", "fashion"]`)
+- the output folder under `datasets/` (e.g., `datasets/numbers/`)
+- the fetch script filename under `src/cnn_workbench/datasets/` (e.g.,
+  `numbers.py`)
+
+This alignment means that from any one of these surfaces a contributor can
+navigate directly to the others without any lookup.
+
 Implementation location rule:
 
-- dataset prepare helpers belong under `src/cnn_workbench/datasets/`
-- Phase 1 should not rely on standalone root-level download scripts as a second
-  competing dataset-preparation path
+- dataset fetch scripts belong under `src/cnn_workbench/datasets/`
+- each dataset has exactly one file named `<dataset_id>.py` in that directory
+- standalone root-level download scripts are not a recognized preparation path
 
 Required dataset fields:
 
 - `root`
   - local dataset root, for example `datasets/numbers`
 - `prepare_entrypoint`
-  - Python entrypoint owned by `src/cnn_workbench/datasets/`, using
-    `module:function` syntax
+  - Python entrypoint in `src/cnn_workbench/datasets/`, using
+    `module:function` syntax; must follow the pattern
+    `cnn_workbench.datasets.<dataset_id>:prepare` where `<dataset_id>` matches
+    the catalog key
 - `sentinel`
   - optional completion marker used by `ensure_dataset()`
 
 Runtime metadata such as `input_channels` and `num_classes` should normally be
 derived by the Python prepare step and written into the resolved child
 config, rather than hardcoded in `configs/datasets.toml`.
+
+### Fetch Script Interface
+
+Every fetch script must satisfy this interface:
+
+**Callable — invoked by the orchestrator:**
+
+```python
+def prepare(output_dir: str) -> None:
+    """Fetch, format, and write the dataset to output_dir.
+
+    Writes <output_dir>/metadata.json containing at minimum:
+        {"input_channels": <int>, "num_classes": <int>}
+    Must be idempotent. Raises on failure.
+    """
+```
+
+**Standalone CLI — requires the workbench package to be installed:**
+
+```bash
+python -m cnn_workbench.datasets.numbers --output-dir ./datasets/numbers
+```
+
+The `__main__` block accepts at minimum `--output-dir`, calls `prepare`, and
+exits with a non-zero code on failure. This is the canonical way to run
+dataset preparation directly from the command line on any host where
+`uv sync` or `pip install` has been run.
+
+### Fetch Script Independence
+
+Fetch scripts are self-contained copy-paste units:
+
+- scripts must not import from sibling dataset fetch scripts
+- utility code may be duplicated across scripts when needed
+- the orchestrator discovers and calls any script by name without a lookup
+  table; `module = f"cnn_workbench.datasets.{dataset_id}"` is the derivation rule
+
+The only shared import permitted from within the datasets package itself is
+the thin `_install_helper` module for dependency self-installation:
+
+```python
+from cnn_workbench.datasets._install_helper import ensure_packages
+ensure_packages(["torchvision"])
+```
+
+`ensure_packages` is a no-op when packages are already present and invokes
+`pip install` when they are missing. This removes the requirement that dataset
+contributors manually pre-install per-dataset libraries before running
+preparation.
 
 Phase 1 persistence contract:
 
@@ -1411,9 +1477,9 @@ Phase 1 persistence contract:
 Expected Phase 1 entries:
 
 - `numbers`
-  - MNIST digits
+  - MNIST digits; fetch script at `src/cnn_workbench/datasets/numbers.py`
 - `fashion`
-  - Fashion-MNIST
+  - Fashion-MNIST; fetch script at `src/cnn_workbench/datasets/fashion.py`
 
 Dataset preparation behavior:
 
@@ -1446,6 +1512,8 @@ Sentinel and repair semantics:
 - `run_local` uses per-child semantics: a dataset preparation failure marks that
   child run as failed with `dataset_prepare_failed` and the batch continues or
   stops per `stop_on_failure`
+
+Canonical IDs: REQ-006, REQ-025, CON-007, CON-019, CON-020, ADR-0015
 
 ## Trainer Contract
 

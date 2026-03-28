@@ -145,6 +145,7 @@ requirements:
       - README.md#dataset-preparation
       - plan.md#dataset-catalog-contract
       - plans/stages/03_datasets/plan.md#scope
+      - plans/decisions/ADR-0015-named-dataset-fetch-files.md
   - id: REQ-007
     title: Actionable Environment Diagnostics
     category: environment
@@ -600,3 +601,31 @@ requirements:
       - plan.md#comparison-contract
       - plans/decisions/ADR-0014-convergence-aware-comparison-methodology.md
       - plans/stages/08_compare_and_matrix/plan.md#scope
+  - id: REQ-025
+    title: Dataset Fetch Script Callable And CLI Interface
+    category: datasets
+    statement: >-
+      When a dataset fetch script is invoked, the workbench shall support a
+      programmatic `prepare(output_dir: str) -> None` function for orchestrator
+      use and a `__main__` block for direct CLI invocation via
+      `python -m cnn_workbench.datasets.<dataset_id> --output-dir <path>`
+      when the workbench package is installed.
+    fit_criterion: >-
+      Every Phase 1 dataset fetch script exposes a `prepare(output_dir: str)
+      -> None` function and a `__main__` block accepting at minimum
+      `--output-dir`; `prepare_datasets` invokes the same prepare function;
+      the module entrypoint exits zero on success and non-zero on failure.
+    rationale: >-
+      A consistent callable signature allows the orchestrator to discover and
+      invoke any dataset script by name without a custom lookup table. The
+      `__main__` block lets contributors run dataset preparation directly from
+      the CLI without going through the full orchestrator command.
+    priority: medium
+    owner: datasets
+    status: accepted
+    stage_ids:
+      - STAGE-03
+    source_refs:
+      - plan.md#dataset-catalog-contract
+      - plans/stages/03_datasets/plan.md#scope
+      - plans/decisions/ADR-0015-named-dataset-fetch-files.md

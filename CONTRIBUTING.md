@@ -270,11 +270,24 @@ remain intact.
 
 For new dataset contributions:
 
-1. add the dataset catalog entry in `configs/datasets.toml`
-2. add the prepare helper under `src/cnn_workbench/datasets/`
-3. ensure the helper writes `<dataset_root>/metadata.json`
-4. verify `resolve` can read the dataset metadata
-5. add tests for idempotent preparation and metadata validation
+1. choose a short lowercase identifier that will be used everywhere (e.g.,
+   `cifar10`)
+2. add the dataset catalog entry in `configs/datasets.toml` using that
+   identifier as the key; set `root = "datasets/<identifier>"`,
+   `prepare_entrypoint = "cnn_workbench.datasets.<identifier>:prepare"`, and
+   optionally `sentinel`
+3. add the fetch script at `src/cnn_workbench/datasets/<identifier>.py`;
+   the script must expose `prepare(output_dir: str) -> None` and a `__main__`
+   block accepting `--output-dir`
+4. scripts may duplicate utility code from other fetch scripts; cross-script
+   imports are not permitted; use `_install_helper.ensure_packages` for any
+   dataset-specific Python libraries
+5. ensure the `prepare` function writes `<dataset_root>/metadata.json`
+   containing `input_channels` and `num_classes`
+6. verify `resolve` can read the dataset metadata
+7. add tests for idempotent preparation, metadata validation, naming alignment
+   between catalog key and script filename, and standalone `__main__` success
+   and failure exit codes
 
 ## Quality Bar
 

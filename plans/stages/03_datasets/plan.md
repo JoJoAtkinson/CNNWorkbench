@@ -21,7 +21,13 @@ shared preparation path.
 - shared dataset metadata loader interface
 - `prepare_datasets`
 - idempotent `ensure_dataset()`
-- `numbers` and `fashion` dataset helpers
+- `numbers` and `fashion` dataset helpers, each as a named fetch file
+  following the standard interface (`src/cnn_workbench/datasets/numbers.py`
+  and `src/cnn_workbench/datasets/fashion.py`)
+- `src/cnn_workbench/datasets/_install_helper.py` — thin utility for
+  dependency self-installation used by fetch scripts
+- standard `prepare(output_dir: str) -> None` callable in every fetch script
+- `__main__` block in every fetch script for standalone CLI invocation
 - `<dataset_root>/metadata.json` creation and validation
 - top-level dataset catalog schema versioning
 - strict Phase 1 `metadata.json` shape with only `input_channels` and
@@ -46,8 +52,8 @@ shared preparation path.
 
 ## Coverage
 
-- Implements: `REQ-006`
-- Constrains: `CON-007`
+- Implements: `REQ-006`, `REQ-025`
+- Constrains: `CON-007`, `CON-019`, `CON-020`
 - Verifies: `ACC-002`, `R4`, `R7`
 
 ## Done Criteria
@@ -58,6 +64,12 @@ shared preparation path.
 - missing metadata produces a clear failure with the right next step
 - cache reuse requires both valid metadata and the configured sentinel when one
   is defined
+- each Phase 1 fetch script (`numbers.py`, `fashion.py`) follows the standard
+  `prepare(output_dir: str) -> None` interface and includes a `__main__` block
+- the fetch script filename, catalog key, `dataset_targets` value, and output
+  folder all use the same identifier for both Phase 1 datasets
+- `_install_helper.ensure_packages` handles missing dependencies without
+  requiring the contributor to pre-install dataset-specific libraries
 
 ## Test Gate
 
@@ -69,6 +81,13 @@ shared preparation path.
 - tests proving `resolve` fails cleanly when metadata is missing
 - tests proving Phase 1 rejects extra persisted metadata keys
 - tests proving `resolve --ensure-datasets` repairs the missing metadata path
+- unit tests confirming `numbers.prepare` and `fashion.prepare` write valid
+  `metadata.json` with `input_channels` and `num_classes`
+- tests confirming each fetch script's `__main__` block exits non-zero on
+  failure and zero on success
+- tests confirming the `prepare_entrypoint` field in `configs/datasets.toml`
+  matches the `cnn_workbench.datasets.<id>:prepare` pattern for each Phase 1
+  dataset
 
 ## Collaboration Risks
 
@@ -82,4 +101,4 @@ shared preparation path.
 - Stage 4 should be able to use the real dataset contract without adding a
   second dataset-preparation path.
 
-Canonical IDs: REQ-006, CON-007
+Canonical IDs: REQ-006, REQ-025, CON-007, CON-019, CON-020

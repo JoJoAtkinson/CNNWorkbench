@@ -319,3 +319,43 @@ constraints:
       - plan.md#experiment-hierarchy
       - plan.md#cli-surface
       - plans/decisions/ADR-0013-grouped-experiment-folders-with-id-based-selection.md
+  - id: CON-019
+    title: Dataset Name Alignment Invariant
+    statement: >-
+      The dataset identifier used as the `configs/datasets.toml` catalog key,
+      the `batch.dataset_targets` value in authored experiments, the
+      `datasets/<name>/` output folder, and the
+      `src/cnn_workbench/datasets/<name>.py` fetch script filename must all be
+      the same string. No mapping table or alias between these four surfaces is
+      permitted.
+    rationale: >-
+      Consistent naming across config, folder, and code makes it trivial for
+      contributors to find the relevant fetch script from the config value, to
+      know the output folder from the script name, and for the orchestrator to
+      auto-discover the prepare callable by name without a secondary lookup.
+    severity: high
+    owner: datasets
+    status: accepted
+    source_refs:
+      - plan.md#dataset-catalog-contract
+      - plans/stages/03_datasets/plan.md#scope
+      - plans/decisions/ADR-0015-named-dataset-fetch-files.md
+  - id: CON-020
+    title: Dataset Fetch Script Self-Containment
+    statement: >-
+      Each dataset fetch script must not import from sibling dataset fetch
+      scripts. Utility code may be duplicated across scripts when needed.
+      The only shared import permitted from within the datasets package is the
+      thin `_install_helper` module for dependency self-installation.
+    rationale: >-
+      Self-containment keeps each script independently usable on a remote server
+      without depending on the full workbench package layout. Permitting
+      cross-script coupling would reintroduce the fragility that copy-paste
+      independence is designed to avoid.
+    severity: medium
+    owner: datasets
+    status: accepted
+    source_refs:
+      - plan.md#dataset-catalog-contract
+      - plans/stages/03_datasets/plan.md#scope
+      - plans/decisions/ADR-0015-named-dataset-fetch-files.md

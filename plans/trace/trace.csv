@@ -181,3 +181,13 @@ REQ-024,STAGE-08,implemented_in_stage,Compare command derives convergence and st
 REQ-024,ACC-005,verified_by,Compare scenarios must verify derived feature presence and rank summary output
 ADR-0014,ADR-0010,refines,Separates per-run curve inspection from the decision-layer compare report
 ADR-0014,ADR-0006,refines,Derived comparison features stay text-first and recomputable from canonical artifacts
+REQ-006,ADR-0015,decided_by,Named file pattern and copy-paste independence refine the dataset catalog contract
+REQ-025,ADR-0015,decided_by,Standard callable and CLI interface for dataset fetch scripts
+REQ-025,STAGE-03,implemented_in_stage,Dataset fetch script interface defined in Stage 3
+REQ-025,ACC-002,verified_by,Dataset preparation scenarios include standalone script invocation
+CON-019,ADR-0015,decided_by,Name alignment across catalog key folder and script filename enforced by this decision
+CON-019,ACC-002,verified_by,Dataset naming alignment scenarios
+CON-020,ADR-0015,decided_by,Copy-paste independence enforced by this decision
+CON-020,ACC-002,verified_by,Dataset fetch script self-containment scenarios
+ADR-0015,REQ-006,refines,Adds explicit naming invariant and copy-paste independence to the dataset catalog contract
+ADR-0015,REQ-025,refines,Codifies the standard callable and CLI interface for fetch scripts

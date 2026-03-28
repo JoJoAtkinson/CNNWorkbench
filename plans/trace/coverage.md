@@ -6,15 +6,15 @@ implementation-side CI surface for planning artifacts.
 
 ## Summary
 
-- Accepted requirements: 24
-- Accepted constraints: 18
+- Accepted requirements: 25
+- Accepted constraints: 20
 - Active collaboration risks: 10
 - Open unknowns: 3
 - Open blocking unknowns: 0
-- ADRs: 14 accepted, 0 superseded, 0 proposed
+- ADRs: 15 accepted, 0 superseded, 0 proposed
 - Acceptance IDs: 9
 
-Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, CON-009, CON-013, CON-014, CON-015, CON-016, CON-017, CON-018, ACC-007, ACC-008, ACC-009, ADR-0013, ADR-0014
+Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, REQ-025, CON-009, CON-013, CON-014, CON-015, CON-016, CON-017, CON-018, CON-019, CON-020, ACC-007, ACC-008, ACC-009, ADR-0013, ADR-0014, ADR-0015
 
 ## Coverage Status
 
@@ -57,8 +57,15 @@ Canonical IDs: REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, CO
   feature computation (steps-to-target, budgeted best, peak-to-final drop) and
   rank-based multi-dataset aggregation from canonical `metrics.csv` artifacts;
   accepted `REQ-024` is verified by `ACC-005` and implemented in `STAGE-08`
+- Dataset fetch script naming and independence coverage: `REQ-025`, `CON-019`,
+  `CON-020`, and `ADR-0015` define the one-file-per-dataset naming invariant,
+  the standard `prepare(output_dir)` callable, the standalone CLI interface,
+  and copy-paste independence; all three are linked through `STAGE-03` and
+  verified by `ACC-002`; `REQ-006` and `CON-007` are updated to reference
+  `ADR-0015` as the decision that makes the naming and independence invariants
+  explicit
 
-Canonical IDs: REQ-016, REQ-018, REQ-024, ADR-0014, CON-009
+Canonical IDs: REQ-016, REQ-018, REQ-024, REQ-025, ADR-0014, ADR-0015, CON-009, CON-019, CON-020
 
 ## Blocking Unknowns By Stage
 
