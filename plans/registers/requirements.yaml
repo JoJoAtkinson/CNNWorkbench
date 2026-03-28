@@ -336,28 +336,37 @@ requirements:
       - plans/README.md
       - plan-stages.md#working-rules
   - id: REQ-015
-    title: Narrative Docs Cite Canonical IDs
+    title: Narrative Docs Stay Aligned And Reconstructable
     category: planning
     statement: >-
-      Narrative planning documents shall remain the human entrypoints, but each
-      major section shall point back to the relevant canonical IDs instead of
-      acting as the sole atomic source of truth.
+      Narrative planning documents shall remain the human entrypoints and
+      current projections of the canonical layer. Each major section shall
+      point back to the relevant canonical IDs, and any section affected by a
+      design change shall be rewritten in place so the plans folder remains a
+      reconstructable description of the current project rather than an
+      append-only chain of fragments.
     fit_criterion: >-
       The major sections in planning narrative docs — plan.md, plan-stages.md,
       and stage plans — include `Canonical IDs:` or `Coverage` references that
-      point into the canonical layer. README.md is an end-user entrypoint and
-      does not carry planning citation lines.
+      point into the canonical layer, and affected sections are updated in
+      place to describe the current design after canonical entries change.
+      README.md is an end-user entrypoint and does not carry planning citation
+      lines.
     rationale: >-
       Human-readable plans remain necessary, but they need explicit bridges back
-      to the structured source of truth to stay self-checking.
+      to the structured source of truth and periodic re-synthesis so future
+      maintainers and LLM agents can reconstruct the project shape without
+      turning plan.md into the only atomic ledger.
     priority: medium
     owner: planning
     status: accepted
     stage_ids:
       - STAGE-01
     source_refs:
+      - plans/README.md
       - plan.md
       - plan-stages.md
+      - CONTRIBUTING.md
   - id: REQ-016
     title: Stage Coverage Contracts
     category: planning

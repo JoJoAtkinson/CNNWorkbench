@@ -113,8 +113,9 @@ Canonical IDs: R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, REQ-018
 - Confirm rationale changes touched the related ADR.
 - Confirm new or changed IDs appear in `trace.csv`.
 - Confirm planning narrative docs (plan.md, plan-stages.md, stage plans) point
-  back to the relevant canonical IDs. README.md is an end-user entrypoint and
-  does not carry `Canonical IDs:` lines.
+  back to the relevant canonical IDs and rewrite affected sections in place so
+  they still describe the current design. README.md is an end-user entrypoint
+  and does not carry `Canonical IDs:` lines.
 - Confirm every affected stage plan still has aligned Coverage, Done Criteria,
   and Test Gate sections.
 

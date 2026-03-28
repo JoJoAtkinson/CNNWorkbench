@@ -20,7 +20,8 @@ Planning update order now matters:
 1. update the canonical register entry under `plans/registers/`
 2. update the related ADR when rationale changed
 3. update `plans/trace/trace.csv` and `plans/trace/coverage.md`
-4. update the affected narrative docs
+4. update the affected narrative docs, rewriting changed sections in place so
+   the current design stays reconstructable from the plans folder
 5. only then implement code
 
 Canonical IDs: REQ-013, REQ-014, REQ-015, REQ-018, CON-005

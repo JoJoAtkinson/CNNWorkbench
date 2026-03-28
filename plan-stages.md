@@ -32,6 +32,9 @@ depending on unfinished later work.
 - Planning updates now follow the canonical order:
   register update, ADR update if rationale changed, trace update, then
   narrative-doc update.
+- When narrative docs are touched, rewrite the affected sections in place so
+  `plan.md`, this file, and the stage plans remain current enough to
+  reconstruct the project shape alongside the canonical layer.
 
 Canonical IDs: REQ-014, REQ-015, REQ-016, CON-009
 

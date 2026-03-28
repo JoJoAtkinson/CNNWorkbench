@@ -31,7 +31,9 @@ linked artifacts:
 
 Structured registers are the source of truth for atomic planning statements.
 Markdown remains the source of truth for explanation, sequencing, and
-onboarding.
+onboarding. When the design changes, those Markdown narratives should be
+rewritten in place so `plan.md`, `plan-stages.md`, and stage plans remain
+current and reconstructable rather than drifting into fragment-only updates.
 
 Canonical IDs: REQ-014, REQ-015, REQ-017, REQ-018, CON-005
 
@@ -92,7 +94,8 @@ When planning or implementation changes the design:
 2. update the related ADR under `plans/decisions/` if rationale changed
 3. update `plans/trace/trace.csv` and review `plans/trace/coverage.md`
 4. update [plan.md](/Users/joe/GitHub/CNNWorkbench/plan.md) and the affected
-   stage file under `plans/stages/`
+   stage file under `plans/stages/`, rewriting the changed sections in place so
+   they read as the current design rather than append-only amendments
 5. update [plans/collaboration-risk-matrix.md](/Users/joe/GitHub/CNNWorkbench/plans/collaboration-risk-matrix.md) if the change affects setup flow, artifact ownership, reviewability, or other collaboration-critical behavior
 6. update contributor-facing docs such as
    [README.md](/Users/joe/GitHub/CNNWorkbench/README.md) and

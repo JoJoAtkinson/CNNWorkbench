@@ -14,7 +14,10 @@ and plans as text artifacts that should remain easy to inspect.
 
 Keep runtime, compare, and planning artifacts text-first and versioned. Use
 small machine-readable ledgers for canonical truth and human-readable Markdown
-for explanation, with neither replaced by opaque binary state.
+for explanation, with neither replaced by opaque binary state. Long-form
+planning docs such as `plan.md` and `plan-stages.md` are maintained as current
+projections of the canonical layer and should be rewritten in place when design
+changes affect them, rather than growing as append-only amendment logs.
 
 ## Consequences
 
@@ -23,6 +26,8 @@ for explanation, with neither replaced by opaque binary state.
   they remain regenerable convenience artifacts rather than the canonical
   review surface.
 - Planning can become self-checking without giving up readable long-form docs.
+- The plans folder remains reconstructable for future maintainers and agents
+  because the narrative docs stay current alongside the structured ledgers.
 - Future automation should validate text artifacts rather than invent a hidden
   second source of truth.
 

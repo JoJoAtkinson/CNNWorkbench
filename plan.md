@@ -16,6 +16,9 @@ Planning source of truth:
 - durable rationale lives in `plans/decisions/`
 - verification and coverage links live in `plans/trace/`
 - this document remains the narrative architecture and contract explanation
+- when the design changes, affected sections here should be rewritten in place
+  so the current architecture remains reconstructable from `plan.md` plus the
+  rest of the canonical planning layer
 
 Canonical IDs: REQ-014, REQ-015, REQ-018, CON-005
 

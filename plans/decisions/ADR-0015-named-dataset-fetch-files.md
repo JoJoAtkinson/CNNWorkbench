@@ -14,21 +14,16 @@ file layout and naming pattern were left implicit, creating open questions about
    the catalog or a config.
 2. How the orchestrator discovers the prepare callable without a secondary
    lookup step.
-3. How dataset scripts are run on remote servers where the full workbench
-   package may not be installed.
-4. How dataset-specific Python dependencies (e.g., `torchvision` for
+3. How dataset-specific Python dependencies (e.g., `torchvision` for
    MNIST-family datasets) are handled when a contributor adds a new dataset
-   from an unfamiliar source.
+   that requires libraries not already in the workbench environment.
 
-Each dataset may require different source libraries, and requiring a full
-project install before datasets can be fetched increases remote-server
-setup burden. The earlier plan named `numbers` and `fashion` as the Phase 1
-datasets but did not codify the file layout as a testable invariant.
+The earlier plan named `numbers` and `fashion` as the Phase 1 datasets but
+did not codify the file layout as a testable invariant.
 
 An alternative considered was a shared dataset base class that all fetch
-modules must inherit. This approach adds coupling, makes scripts harder to
-copy to remote servers independently, and means a breaking change to the base
-affects every dataset at once.
+modules must inherit. This approach adds coupling and means a breaking change
+to the base affects every dataset at once.
 
 Another alternative was treating `prepare_entrypoint` as the sole discovery
 mechanism with no naming constraint. That allows arbitrary cross-module

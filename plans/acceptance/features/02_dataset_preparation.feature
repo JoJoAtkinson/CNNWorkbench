@@ -43,6 +43,6 @@ Feature: Prepare datasets and surface runtime metadata
     And the script exits with a non-zero code on failure
 
   Scenario: Fetch script keeps its behavior when siblings are absent
-    Given a Phase 1 fetch script copied to an isolated directory without other dataset scripts
-    When prepare(output_dir) is called with an appropriate Python environment
+    Given a Phase 1 fetch script loaded in an environment where no sibling dataset scripts are importable
+    When prepare(output_dir) is called
     Then the function completes without importing from sibling dataset scripts

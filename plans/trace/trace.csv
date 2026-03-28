@@ -61,9 +61,9 @@ REQ-013,ACC-006,verified_by,FPGA promotion scenarios
 REQ-014,ADR-0006,decided_by,Planning artifacts stay text-first and layered
 REQ-014,STAGE-01,implemented_in_stage,Foundation now includes the canonical planning layer
 REQ-014,ACC-007,verified_by,Planning update-order scenario
-REQ-015,ADR-0006,decided_by,Narrative docs remain readable projections
-REQ-015,STAGE-01,implemented_in_stage,Narrative docs cite canonical IDs
-REQ-015,ACC-007,verified_by,Planning citation scenarios
+REQ-015,ADR-0006,decided_by,Narrative docs remain current reconstructable projections of the canonical layer
+REQ-015,STAGE-01,implemented_in_stage,Stage 1 establishes canonical citations and in-place narrative resynthesis rules
+REQ-015,ACC-007,verified_by,Planning consistency scenarios cover canonical citations and current narrative alignment
 REQ-016,ADR-0006,decided_by,Stage coverage is part of the planning trace layer
 REQ-016,STAGE-01,implemented_in_stage,Stage plans declare explicit coverage
 REQ-016,ACC-007,verified_by,Stage coverage scenario

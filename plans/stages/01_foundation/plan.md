@@ -64,6 +64,8 @@ implementation work.
 - the repository has a clear test entrypoint for later stages to build on
 - at least one workflow under `.github/workflows/` runs `make test`
 - local runtime directories named in the top-level docs are ignored by git
+- planning narrative entrypoints stay aligned to the canonical layer and update
+  affected sections in place rather than accumulating detached amendments
 
 ## Test Gate
 

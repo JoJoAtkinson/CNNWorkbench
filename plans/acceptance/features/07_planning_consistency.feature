@@ -9,6 +9,12 @@ Feature: Maintain the planning consistency layer
     When the maintainer updates the planning set
     Then the canonical register is updated before the related ADR, trace, and narrative docs
 
+  Scenario: Keep the architecture narrative current
+    Given a design change affects an existing section of plan.md
+    When the maintainer updates the narrative docs
+    Then the affected section is rewritten in place to describe the current design
+    And the section still points back to the relevant canonical IDs
+
   Scenario: Keep stage plans traceable
     Given a stage plan defines scope and acceptance gates
     When the maintainer reviews the stage plan

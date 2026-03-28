@@ -8,7 +8,8 @@ the long-form docs, stage plans, decisions, and collaboration guidance.
 ## Rules
 
 - `REQ-014`: update registers before ADRs, trace, and narrative docs
-- `REQ-015`: major narrative sections point back to canonical IDs
+- `REQ-015`: major narrative sections point back to canonical IDs and are
+  rewritten in place so the current design stays reconstructable
 - `REQ-016`: every stage plan carries explicit coverage
 - `REQ-017`: stable flows use tagged scenarios and volatile areas use example
   maps
@@ -19,6 +20,8 @@ the long-form docs, stage plans, decisions, and collaboration guidance.
 
 - A clarified build rule updates `CON-006`, the related ADR, the trace rows, and
   only then the narrative build sections.
+- A fundamental architecture change rewrites the affected `plan.md` section in
+  place instead of adding a detached "latest change" fragment elsewhere.
 - A new stage change cannot be merged if its stage plan has no Coverage section.
 - A planning review can open `trace/coverage.md` and see whether any accepted
   requirement lacks verification.
